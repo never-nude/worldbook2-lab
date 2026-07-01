@@ -767,10 +767,7 @@ map.addLayer(countryLabels3D);
   const _bootHeavyLayers=()=>{ if(_heavyBooted) return; _heavyBooted=true;
     { const _ld=document.getElementById("loading"); if(_ld) _ld.textContent="Finishing touches\u2026"; }
     requestAnimationFrame(()=>{ try{
-    map.addSource("sunshade",{type:"geojson",data:sunGrid()});
-    map.addLayer({id:"sunshade",type:"fill",source:"sunshade",
-      paint:{"fill-color":"#02040a","fill-opacity":["coalesce",["feature-state","op"],0],"fill-opacity-transition":{duration:1500}}}, "borders");   // was "hover" - inserting before "borders" instead puts borders ON TOP of the terminator, so the day/night shading no longer washes out border-line contrast
-    updateSunShade();
+    /* sunshade MapLibre layer intentionally removed - day/night shading now lives entirely in the Three.js earthOccluder shader, see initSky()/renderSky() */
     }catch(e2){ console.error("Atlas deferred init (sunshade):",e2); }
     try{ addFlowLayers(); }catch(e2){ console.error("Atlas deferred init (flow layers):",e2); }
     try{
@@ -1027,7 +1024,7 @@ function startSpin(){
       }
       // day/night glides with the spin — refresh ~15 Hz so the terminator never lurches,
       // even at 5 days/min (instead of the old 1 Hz step).
-      if(t-lastShade>160){ updateSunShade(); lastShade=t; }
+      /* day/night shading now driven every rendered frame by the Three.js earthOccluder shader, not this polygon-grid update */
     }
     if(flowActive()){                                      // dots ride the master loop, perfectly in sync with the globe
       if(!FLOWGEO || FLOWGEO.key!==flowKey || FLOWGEO.focus!==flowFocusIso) buildFlowGeo(flowKey);
@@ -2860,7 +2857,7 @@ function initSky(){
     fscene.add(new THREE.AmbientLight(0x223046,0.55));
     const moonLight=new THREE.PointLight(0xfff2d0,2.2,0,0); fscene.add(moonLight);
     const fgroup=new THREE.Group(); fscene.add(fgroup);
-    const earthOccluder=new THREE.Mesh(new THREE.SphereGeometry(1,48,48),new THREE.MeshBasicMaterial({colorWrite:false})); fscene.add(earthOccluder);  // invisible, depth-only: gives the Moon true GPU depth occlusion against Earth
+    const earthOccluder=new THREE.Mesh(new THREE.SphereGeometry(1,48,48),new THREE.MeshBasicMaterial({colorWrite:false})); fscene.add(earthOccluder);  // invisible, depth-only
     const lunaPivot=new THREE.Group(); lunaPivot.rotation.set(0.38,0,0.08); fgroup.add(lunaPivot);
     const luna=new THREE.Mesh(new THREE.SphereGeometry(0.004527,24,24),new THREE.MeshStandardMaterial({color:0xd8d8d8,roughness:1}));  // 0.273×Earth radius ÷ 60.3 orbit = to-scale Moon
     lunaPivot.add(luna);
@@ -2913,7 +2910,7 @@ function renderSky(){
   SKY.camera.position.set(0,0,3); SKY.camera.up.set(0,1,0); SKY.camera.lookAt(0,0,0);
   updateBodies();                                            // planet directions from the sim clock
   { const ss=subsolarPoint(solarDate), d=sunViewDir(ss.lng,ss.lat,C.lng,C.lat,brg).multiplyScalar(60);
-    SKY.sunMesh.position.copy(d); SKY.sunLight.position.copy(d); }   // Sun aligned to the lit hemisphere
+    SKY.sunMesh.position.copy(d); SKY.sunLight.position.copy(d); }   // Sun aligned to the lit hemisphere; day/night shading removed per Mike's request (zoom-dependent artifacts on the earthOccluder sphere) - see worldbook_remove_daynight_shading.py
   // measure the globe's TRUE on-screen radius = its limb (max projected distance of surface points).
   // (A small-angle derivative badly under-reads it on the perspective globe — that was the real bug.)
   let gpx=null;
