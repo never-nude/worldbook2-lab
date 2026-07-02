@@ -441,6 +441,33 @@ map.addControl(new maplibregl.AttributionControl({compact:true, customAttributio
 // Touch arbitration: one-finger drag = spin globe, two-finger pinch = zoom, tap = select.
 try{ map.touchPitch.disable(); map.touchZoomRotate.disableRotation(); }catch(e){}
 
+// Surface MapLibre-internal errors (tile/source/style errors) to the console instead of letting
+// them fail silently - added 2026-07-02 while investigating the intermittent Countries-layer
+// fill flicker. Purely diagnostic/additive, changes no rendering behavior.
+map.on("error", function(e){ console.warn("[worldbook] MapLibre error:", e && e.error ? e.error : e); });
+
+// Self-healing repaint for the Countries reference view - added 2026-07-02 alongside removing
+// country-glow-soft/tight. The Mexico/US/Russia transparent-fill flicker Mike reported was
+// confirmed genuinely intermittent (same static camera, different countries affected at
+// different moments) and could not be deterministically reproduced-then-isolated to one exact
+// GPU-level cause in this session despite substantial live investigation (ruled out: missing
+// color data - all 242 features verified present; the antique sheen/grain overlay - opacity too
+// low, 0.22/0.45, to ever fully blank a fill even mathematically worst-case). Rather than ship an
+// unverified guess as "the fix," this re-asserts the Countries fill-color/fill-opacity paint
+// properties and forces a repaint every few seconds while the Countries view is active, so IF a
+// transient tile/paint glitch ever recurs, it self-corrects within seconds instead of persisting
+// or compounding. Cheap (a no-op-equivalent setPaintProperty call plus one repaint, a few times a
+// minute) and strictly additive - does not change how the layer is built, only guards it at runtime.
+setInterval(function(){
+  try{
+    if(activeLayer==="countries" && !subOn && map.getLayer("fills")){
+      map.setPaintProperty("fills","fill-color",["coalesce",["get","color_countries_light"],"#f5f0e4"]);
+      map.setPaintProperty("fills","fill-opacity",1);
+      map.triggerRepaint();
+    }
+  }catch(e){}
+}, 4000);
+
 let activeLayer="countries";   // Countries reference map opens by default
 let subOn=false;          // subnational mode active
 let currentISO=null;
@@ -461,12 +488,15 @@ function _atlasBoot(){ if(_atlasBooted) return; _atlasBooted=true; try{
       "fill-color-transition":{duration:500,delay:0},"fill-opacity-transition":{duration:400}}});
   map.addLayer({id:"borders",type:"line",source:"world",
     paint:{"line-color":"#05080f","line-width":1.3,"line-opacity-transition":{duration:400}}});
-  map.addLayer({id:"country-glow-soft",type:"line",source:"world",
-    layout:{visibility:"none"},
-    paint:{"line-color":["get","color_countries_dark"],"line-width":["interpolate",["linear"],["zoom"],0,3.5,2,11.2,5,25],"line-blur":["interpolate",["linear"],["zoom"],0,2.1,2,7.1,5,14.2],"line-opacity":0.6}}, "borders");
-  map.addLayer({id:"country-glow-tight",type:"line",source:"world",
-    layout:{visibility:"none"},
-    paint:{"line-color":["get","color_countries_dark"],"line-width":["interpolate",["linear"],["zoom"],0,1.4,2,4.5,5,10],"line-blur":["interpolate",["linear"],["zoom"],0,0.6,2,1.5,5,3.1],"line-opacity":0.85}}, "borders");
+  // country-glow-soft/tight REMOVED 2026-07-02: these were oversized (up to 25px width + 14px
+  // blur at zoom 5) per-country-colored line layers stacked directly above "fills", visible only
+  // on the Countries default view. Identified as the most likely GPU-rendering-instability
+  // contributor to the intermittent Mexico/US/Russia transparent-fill flicker Mike reported
+  // (Countries-layer-exclusive per his own diagnosis, and this was the heaviest, least-tested,
+  // most complex Countries-exclusive rendering subsystem). Removed rather than re-tuned, per the
+  // project's established pattern of replacing fragile cleverness with something simpler and
+  // provably solid - see worldbook-country-geometry-rebuild memory for the same principle applied
+  // to geometry simplification and color lookups.
   map.addSource("country-labels",{type:"geojson",data:COUNTRY_LABELS});
   map.addLayer({id:"country-labels",type:"symbol",source:"country-labels",
     filter:[">=",["zoom"],["-",["get","minZoom"],1.6]],
@@ -2349,8 +2379,6 @@ function setLayer(key){
   { const _isCountriesRef=(key==="countries"&&!subOn);   // relief-map look: colored glow hugging each border
     const _showBorders=(key!=="satellite"&&!subOn);   // country borders: every layer except satellite imagery (matches the country-label visibility rule above) - independent of the Countries-only glow/sea-collar/city bundle below
     if(map.getLayer("borders")) map.setPaintProperty("borders","line-opacity",_showBorders?1:0);
-    if(map.getLayer("country-glow-soft")) map.setLayoutProperty("country-glow-soft","visibility",_isCountriesRef?"visible":"none");
-    if(map.getLayer("country-glow-tight")) map.setLayoutProperty("country-glow-tight","visibility",_isCountriesRef?"visible":"none");
     if(map.getLayer("sea-collar")) map.setLayoutProperty("sea-collar","visibility",_isCountriesRef?"visible":"none");
     [1,2,3].forEach(function(tr){
       if(map.getLayer("cities-dot-"+tr)) map.setLayoutProperty("cities-dot-"+tr,"visibility",_isCountriesRef?"visible":"none");
