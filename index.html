@@ -613,12 +613,31 @@ function _atlasBoot(){ if(_atlasBooted) return; _atlasBooted=true; try{
   // merely split at tile bounds - no closing edge - so a line source can't show the seam.
   // tolerance:0 and maxzoom:6 match the "world" source so both sources cut IDENTICAL tile
   // grids - the dropout watchdog compares them per-tile, which only works if they align.
+  // Ring winding is normalized (exteriors clockwise-on-screen, holes counter-clockwise) so a
+  // country's interior always lies on the same side of a line's travel direction. That lets a
+  // single line-offset sign on countries-edge-soft/tight pull the glow INTO the country, so
+  // the edge gradient never bleeds past the country's own border into sea or neighbors.
+  function _wbRingCW(r){ var s=0,i,n=r.length-1; for(i=0;i<n;i++){ s+=(r[i+1][0]-r[i][0])*(r[i+1][1]+r[i][1]); } return s>0; }
+  function _wbEdgeRings(g){ var polys=(g.type==="Polygon")?[g.coordinates]:g.coordinates, out=[];
+    polys.forEach(function(rings){ rings.forEach(function(ring,ri){
+      out.push(((ri===0)===_wbRingCW(ring))?ring:ring.slice().reverse()); }); });
+    return out; }
+  // One feature PER RING (not per country) so each ring carries rdeg - half its bbox's
+  // smaller dimension, in degrees. The glow layers clamp width/offset to rdeg's on-screen
+  // size, otherwise an inward-offset glow wider than a small island inverts through its
+  // center and renders as a radial-spoke star (verified live on the Aegean/Balearics).
   map.addSource("world-lines",{type:"geojson",tolerance:0,maxzoom:6,data:{type:"FeatureCollection",
-    features:MAPDATA.features.map(function(f){ var g=f.geometry;
-      return {type:"Feature",
-        properties:{iso3:f.properties.iso3,color_countries_dark:f.properties.color_countries_dark,
-          color_countries_e1:f.properties.color_countries_e1,color_countries_e2:f.properties.color_countries_e2},
-        geometry:{type:"MultiLineString",coordinates:(g.type==="Polygon"?g.coordinates:g.coordinates.flat())}}; })}});
+    features:MAPDATA.features.reduce(function(acc,f){
+      _wbEdgeRings(f.geometry).forEach(function(ring){
+        var xmin=1e9,xmax=-1e9,ymin=1e9,ymax=-1e9;
+        ring.forEach(function(p){ if(p[0]<xmin)xmin=p[0]; if(p[0]>xmax)xmax=p[0]; if(p[1]<ymin)ymin=p[1]; if(p[1]>ymax)ymax=p[1]; });
+        acc.push({type:"Feature",
+          properties:{iso3:f.properties.iso3,color_countries_dark:f.properties.color_countries_dark,
+            color_countries_e1:f.properties.color_countries_e1,color_countries_e2:f.properties.color_countries_e2,
+            rdeg:Math.min(xmax-xmin,ymax-ymin)/2},
+          geometry:{type:"LineString",coordinates:ring}});
+      });
+      return acc; },[])}});
   map.addLayer({id:"fills",type:"fill",source:"world",
     paint:{"fill-color":colorExpr("religion"),"fill-opacity":1,
       "fill-color-transition":{duration:500,delay:0},"fill-opacity-transition":{duration:400}}});
@@ -629,12 +648,26 @@ function _atlasBoot(){ if(_atlasBooted) return; _atlasBooted=true; try{
   // and the border treatment is an edge gradient in each country's OWN hue: two blurred line
   // layers step the fill color darker toward the boundary (e1 = 45% toward the dark shade,
   // e2 = 80%), so each country fades a few shades darker as it approaches its edge.
+  // line-offset = width/2 shifts each glow line fully inside its country (winding normalized
+  // above puts the interior on the positive-offset side), so the outer edge of the glow sits
+  // exactly on the border instead of straddling it and spilling into the sea / next country.
+  // Each zoom stop clamps to the ring's on-screen size: rdeg (half the ring bbox's smaller
+  // dimension, degrees) * 512*2^z/360 px/deg * 0.75 safety. line-join round is required -
+  // the default miter join turns inward-offset lines into black spikes at sharp coast angles.
   map.addLayer({id:"countries-edge-soft",type:"line",source:"world-lines",
-    layout:{visibility:"none"},
-    paint:{"line-color":["get","color_countries_e1"],"line-width":["interpolate",["linear"],["zoom"],0,4,2,12,5,26],"line-blur":["interpolate",["linear"],["zoom"],0,2.4,2,7.5,5,15],"line-opacity":0.55}}, "borders");
+    layout:{visibility:"none","line-join":"round","line-cap":"round"},
+    paint:{"line-color":["get","color_countries_e1"],
+      "line-width":["interpolate",["linear"],["zoom"],0,["min",4,["*",["get","rdeg"],2.1]],2,["min",12,["*",["get","rdeg"],8.5]],5,["min",26,["*",["get","rdeg"],68]]],
+      "line-offset":["interpolate",["linear"],["zoom"],0,["min",2,["*",["get","rdeg"],1.05]],2,["min",6,["*",["get","rdeg"],4.25]],5,["min",13,["*",["get","rdeg"],34]]],
+      "line-blur":["interpolate",["linear"],["zoom"],0,["min",2.4,["*",["get","rdeg"],2.1]],2,["min",7.5,["*",["get","rdeg"],8.5]],5,["min",15,["*",["get","rdeg"],68]]],
+      "line-opacity":0.55}}, "borders");
   map.addLayer({id:"countries-edge-tight",type:"line",source:"world-lines",
-    layout:{visibility:"none"},
-    paint:{"line-color":["get","color_countries_e2"],"line-width":["interpolate",["linear"],["zoom"],0,1.6,2,4.5,5,10],"line-blur":["interpolate",["linear"],["zoom"],0,0.7,2,1.6,5,3.2],"line-opacity":0.8}}, "borders");
+    layout:{visibility:"none","line-join":"round","line-cap":"round"},
+    paint:{"line-color":["get","color_countries_e2"],
+      "line-width":["interpolate",["linear"],["zoom"],0,["min",1.6,["*",["get","rdeg"],2.1]],2,["min",4.5,["*",["get","rdeg"],8.5]],5,["min",10,["*",["get","rdeg"],68]]],
+      "line-offset":["interpolate",["linear"],["zoom"],0,["min",0.8,["*",["get","rdeg"],1.05]],2,["min",2.25,["*",["get","rdeg"],4.25]],5,["min",5,["*",["get","rdeg"],34]]],
+      "line-blur":["interpolate",["linear"],["zoom"],0,["min",0.7,["*",["get","rdeg"],2.1]],2,["min",1.6,["*",["get","rdeg"],8.5]],5,["min",3.2,["*",["get","rdeg"],68]]],
+      "line-opacity":0.8}}, "borders");
   map.addSource("country-labels",{type:"geojson",data:COUNTRY_LABELS});
   map.addLayer({id:"country-labels",type:"symbol",source:"country-labels",
     filter:[">=",["zoom"],["-",["get","minZoom"],1.6]],
