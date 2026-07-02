@@ -220,7 +220,7 @@
    element itself is faded and removed by the timeouts in _wbApplyGeo. */
 .wb-geo-marker{width:12px;height:12px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px 4px rgba(110,168,254,.9);cursor:pointer;position:relative;animation:wbGeoFlash 2.6s ease-out 1 forwards}
 .wb-geo-ring{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;border:2.5px solid rgba(110,168,254,.9);box-shadow:0 0 8px rgba(110,168,254,.5),inset 0 0 8px rgba(110,168,254,.35);opacity:0;pointer-events:none;animation:wbGeoPing 2s cubic-bezier(.2,.65,.35,1) 1 forwards}
-@keyframes wbGeoPing{0%{transform:scale(.35);opacity:.95;border-width:3px}60%{opacity:.4}100%{transform:scale(12);opacity:0;border-width:1px}}
+@keyframes wbGeoPing{0%{transform:scale(.35);opacity:.95;border-width:3px}60%{opacity:.4}100%{transform:scale(3.6);opacity:0;border-width:1px}}
 @keyframes wbGeoFlash{0%{box-shadow:0 0 12px 4px rgba(110,168,254,.9)}15%{box-shadow:0 0 34px 15px rgba(110,168,254,1),0 0 60px 26px rgba(110,168,254,.5)}100%{box-shadow:0 0 10px 3px rgba(110,168,254,.7)}}
 .wb-geo-pop-h{font-weight:600;font-size:13px;color:var(--ink);margin-bottom:2px}
 .wb-geo-pop-d{font-size:12px;color:var(--ink);opacity:.85;margin-bottom:6px}
@@ -532,7 +532,7 @@ map.on("error", function(e){ console.warn("[worldbook] MapLibre error:", e && e.
 // running the JS they loaded (a page never picks up new code without a reload), and this
 // tag is how we tell "old build still open" apart from "bug survived the fix" - check
 // `WB_BUILD` in the console or the boot line below.
-window.WB_BUILD="2026-07-02.5 edge-glow-inset";
+window.WB_BUILD="2026-07-02.6 geo-ping-30pct";
 console.info("[worldbook] build", window.WB_BUILD);
 
 /* ── Countries tile-dropout watchdog ──────────────────────────────────────────
