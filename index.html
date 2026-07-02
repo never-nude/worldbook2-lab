@@ -214,10 +214,14 @@
   #hint.wbfade{opacity:0 !important;pointer-events:none}
 
 /* visitor IP-location marker */
-.wb-geo-marker{width:14px;height:14px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px 3px rgba(110,168,254,.85);cursor:pointer;position:relative;animation:wbGeoFlash 2.4s ease-out 1 forwards}
-.wb-geo-marker::after{content:"";position:absolute;inset:-13px;border-radius:50%;background:radial-gradient(circle,rgba(110,168,254,0) 0%,rgba(110,168,254,.95) 40%,rgba(110,168,254,.4) 62%,rgba(110,168,254,0) 78%);filter:blur(1px);animation:wbGeoPulse 2.4s ease-out 1 forwards}
-@keyframes wbGeoPulse{0%{transform:scale(.3);opacity:0}18%{transform:scale(.6);opacity:1}100%{transform:scale(2.6);opacity:0}}
-@keyframes wbGeoFlash{0%{box-shadow:0 0 10px 3px rgba(110,168,254,.85)}18%{box-shadow:0 0 32px 14px rgba(110,168,254,1),0 0 58px 24px rgba(110,168,254,.55)}100%{box-shadow:0 0 10px 3px rgba(110,168,254,.85)}}
+/* one-shot radar ping at the visitor's IP location: a blue core dot flashes on, and
+   three ring children (added in _wbApplyGeo) radiate outward and fade, staggered like
+   a sonar ping. Every animation runs `1 forwards` - it never repeats; the marker
+   element itself is faded and removed by the timeouts in _wbApplyGeo. */
+.wb-geo-marker{width:12px;height:12px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px 4px rgba(110,168,254,.9);cursor:pointer;position:relative;animation:wbGeoFlash 2.6s ease-out 1 forwards}
+.wb-geo-ring{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;border:2.5px solid rgba(110,168,254,.9);box-shadow:0 0 8px rgba(110,168,254,.5),inset 0 0 8px rgba(110,168,254,.35);opacity:0;pointer-events:none;animation:wbGeoPing 2s cubic-bezier(.2,.65,.35,1) 1 forwards}
+@keyframes wbGeoPing{0%{transform:scale(.35);opacity:.95;border-width:3px}60%{opacity:.4}100%{transform:scale(12);opacity:0;border-width:1px}}
+@keyframes wbGeoFlash{0%{box-shadow:0 0 12px 4px rgba(110,168,254,.9)}15%{box-shadow:0 0 34px 15px rgba(110,168,254,1),0 0 60px 26px rgba(110,168,254,.5)}100%{box-shadow:0 0 10px 3px rgba(110,168,254,.7)}}
 .wb-geo-pop-h{font-weight:600;font-size:13px;color:var(--ink);margin-bottom:2px}
 .wb-geo-pop-d{font-size:12px;color:var(--ink);opacity:.85;margin-bottom:6px}
 .wb-geo-pop-s{font-size:10.5px;color:var(--muted);line-height:1.4}
@@ -455,7 +459,7 @@ map.on("error", function(e){ console.warn("[worldbook] MapLibre error:", e && e.
 // running the JS they loaded (a page never picks up new code without a reload), and this
 // tag is how we tell "old build still open" apart from "bug survived the fix" - check
 // `WB_BUILD` in the console or the boot line below.
-window.WB_BUILD="2026-07-02.3 countries-rebuild+sea-collar-removed";
+window.WB_BUILD="2026-07-02.4 geo-ping";
 console.info("[worldbook] build", window.WB_BUILD);
 
 /* ── Countries tile-dropout watchdog ──────────────────────────────────────────
@@ -927,6 +931,7 @@ map.addLayer(countryLabels3D);
     document.getElementById("loading").style.display="none";
     startSpin();
     try{ _wbDropoutBootT=Date.now(); }catch(e){}   // boot window starts at reveal, not script eval
+    try{ _wbGeoRevealReady=true; setTimeout(_wbApplyGeo, 600); }catch(e){}   // geo ping fires just after reveal
     // Boot re-cut: the initial load requests every visible tile at once, which is the
     // heaviest churn window for the maplibre geojson worker race the dropout watchdog
     // guards against - and a tile broken during boot reports "loaded", so the phase-2
@@ -1026,13 +1031,18 @@ map.moveLayer("country-labels");   // fix: MapLibre resolves cross-layer symbol 
   }catch(_e){ console.error("Atlas init error:",_e); document.getElementById("loading").style.display="none"; }
 }
 if(map.isStyleLoaded()) _atlasBoot(); else map.on("load", _atlasBoot);
-var _wbGeo=null, _wbGeoMapReady=false, _wbGeoApplied=false;
+var _wbGeo=null, _wbGeoMapReady=false, _wbGeoApplied=false, _wbGeoRevealReady=false;
 function _wbApplyGeo(){
-  if(!_wbGeo || !_wbGeoMapReady || _wbGeoApplied) return;
+  // _wbGeoRevealReady gates the ping until the loading overlay is gone - map "load" and
+  // the IP lookup both resolve while the boot screen still covers the map, and a ping
+  // that radiates behind the overlay is a ping nobody sees.
+  if(!_wbGeo || !_wbGeoMapReady || !_wbGeoRevealReady || _wbGeoApplied) return;
   _wbGeoApplied=true;
   try{
     var el=document.createElement("div");
     el.className="wb-geo-marker";
+    for(var _ri=0;_ri<3;_ri++){ var _ring=document.createElement("div"); _ring.className="wb-geo-ring";
+      _ring.style.animationDelay=(_ri*0.35)+"s"; el.appendChild(_ring); }
     var _wbMarker=new maplibregl.Marker({element:el})
       .setLngLat([_wbGeo.lng,_wbGeo.lat])
       .setPopup(new maplibregl.Popup({closeButton:false,offset:10}).setHTML(
@@ -1043,10 +1053,10 @@ function _wbApplyGeo(){
       .addTo(map);
     map.flyTo({center:[_wbGeo.lng,_wbGeo.lat], zoom:1.6, bearing:0, pitch:0, duration:2200});
     if(window.console) console.info("[worldbook geo] centered on", _wbGeo.place||(_wbGeo.lat+","+_wbGeo.lng));
-    // one ping, then gone: hold briefly after the ring pulse (2.4s), fade the whole
-    // marker out, then actually remove it - a wink, not a permanent map fixture.
-    setTimeout(function(){ el.style.transition="opacity .6s ease"; el.style.opacity="0"; }, 2800);
-    setTimeout(function(){ try{ _wbMarker.remove(); }catch(e){} }, 3400);
+    // one ping, then gone: the last ring launches at +0.7s and radiates for 2s, so hold
+    // until ~2.9s, fade the core dot, then actually remove the marker entirely.
+    setTimeout(function(){ el.style.transition="opacity .6s ease"; el.style.opacity="0"; }, 3000);
+    setTimeout(function(){ try{ _wbMarker.remove(); }catch(e){} }, 3700);
   }catch(e){ if(window.console) console.warn("[worldbook geo] marker/fly-to failed", e); }
 }
 function _wbGeoFromIpwhois(){
