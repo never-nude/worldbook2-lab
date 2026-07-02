@@ -451,6 +451,114 @@ try{ map.touchPitch.disable(); map.touchZoomRotate.disableRotation(); }catch(e){
 // fill flicker. Purely diagnostic/additive, changes no rendering behavior.
 map.on("error", function(e){ console.warn("[worldbook] MapLibre error:", e && e.error ? e.error : e); });
 
+/* ── Countries tile-dropout watchdog ──────────────────────────────────────────
+   Added 2026-07-02. The intermittent "country goes transparent" flicker was TWO
+   bugs. The wholesale limb darkening was the sky fog (fixed at the setSky call
+   in _atlasBoot). What remains is rarer and tile-shaped: maplibre's geojson
+   worker can, under rapid camera movement (the auto-spin re-requests tiles
+   constantly), resolve an aborted-then-rerequested tile as EMPTY yet "loaded"
+   (upstream maplibre-gl-js #7752 - the race class exists across all stable 5.x;
+   real fixes only landed in 6.0 prereleases, which are ESM-only/breaking). The
+   broken tile paints nothing until something forces a re-request.
+   DETECTION: "world" (polygon fills) and "world-lines" (borders/glows) are cut
+   from the same 242 features on identical tile grids (same tolerance/maxzoom),
+   so within one canonical tile, an iso3 that has border lines but no fill
+   polygons means the world tile is broken. The reverse (fills without lines) is
+   NORMAL - a tile interior to a large country contains no boundary - so the
+   check is deliberately one-directional. A tile entirely absent from "world"
+   while its same-zoom siblings are present is the whole-tile-empty case.
+   HEAL: map.refreshTiles (public since 5.5, geojson since 5.6) re-cuts tiles
+   from the worker's already-parsed index (~ms). Escalation to setData exists
+   because a refresh through maplibre's _reloadLoadedTile path can restore
+   pixels but not feature-query data; note that in 5.24 setData SKIPS tiles in
+   state "errored" while refreshTiles reloads them, so refresh-first is required
+   for convergence, not just cheaper. A dropout must persist 2 consecutive scans
+   (5 s apart) before healing; heals are rate-limited (30 s) and capped
+   (5 per 10 min), and each heal logs the missing iso3 list so future sessions
+   can tell whether this ever fires. Zero false positives across 738 live scan
+   samples under aggressive camera churn during development. */
+var _wbDropoutLastHeal=0, _wbDropoutLastMissing=[], _wbDropoutLastWasRefresh=false,
+    _wbDropoutHealTimes=[], _wbDropoutCapWarned=false, _wbDropoutErrLogged=false,
+    _wbDropoutPending=null;
+function _wbDropoutScan(){
+  var style=map.style||{};
+  var tm=style.tileManagers||style.sourceCaches||{};           // renamed across maplibre 5.x
+  var wtm=tm["world"], ltm=tm["world-lines"];
+  if(wtm&&ltm&&typeof wtm.areTilesLoaded==="function"){        // per-source gate: the map-global
+    if(!wtm.areTilesLoaded()||!ltm.areTilesLoaded()) return null;   // check is starved by flow-dots
+  } else if(!map.areTilesLoaded()) return null;                // setData every frame in flow modes
+  if(!map.getSource("world")||!map.getSource("world-lines")) return null;
+  var lines=map.querySourceFeatures("world-lines"); if(!lines.length) return null;
+  var fills=map.querySourceFeatures("world");
+  var keyOf=function(f){ var t=f.tile; return (t&&typeof t.z==="number")?(t.z+"/"+t.x+"/"+t.y):null; };
+  if(keyOf(lines[0])!==null){                                  // per-canonical-tile comparison
+    var fillsBy={}, linesBy={}, fillZooms={};
+    fills.forEach(function(f){ var k=keyOf(f), id=f.properties&&f.properties.iso3;
+      if(k&&id){ (fillsBy[k]=fillsBy[k]||{})[id]=1; fillZooms[k.split("/")[0]]=1; } });
+    lines.forEach(function(f){ var k=keyOf(f), id=f.properties&&f.properties.iso3;
+      if(k&&id) (linesBy[k]=linesBy[k]||{})[id]=1; });
+    var missing={}, tiles=[], k, id;
+    for(k in linesBy){
+      var broke=false;
+      if(fillsBy[k]){                                          // tile present in both: diff contents
+        for(id in linesBy[k]) if(!fillsBy[k][id]){ missing[id]=1; broke=true; }
+      } else if(fillZooms[k.split("/")[0]]){                   // tile empty in world while world IS
+        for(id in linesBy[k]){ missing[id]=1; broke=true; }    // serving other tiles at this zoom:
+      }                                                        // the whole-tile-empty dropout
+      if(broke){ var p=k.split("/"); tiles.push({z:+p[0],x:+p[1],y:+p[2]}); }
+    }
+    var list=Object.keys(missing);
+    return {missing:list, tiles:list.length?tiles:[]};
+  }
+  var have={};                                                 // fallback if feature.tile ever goes
+  fills.forEach(function(f){ var id=f.properties&&f.properties.iso3; if(id) have[id]=1; });
+  var miss={};
+  lines.forEach(function(f){ var id=f.properties&&f.properties.iso3; if(id&&!have[id]) miss[id]=1; });
+  return {missing:Object.keys(miss), tiles:null};
+}
+function _wbDropoutHeal(missing, tiles){
+  var now=Date.now();
+  _wbDropoutHealTimes=_wbDropoutHealTimes.filter(function(t){ return now-t<600000; });
+  if(_wbDropoutHealTimes.length>=5){
+    if(!_wbDropoutCapWarned){ _wbDropoutCapWarned=true;
+      console.warn("[worldbook] tile-dropout heal cap hit (5/10min), backing off; missing:",missing.join(",")); }
+    return;
+  }
+  if(now-_wbDropoutLastHeal<30000) return;
+  _wbDropoutLastHeal=now; _wbDropoutHealTimes.push(now); _wbDropoutCapWarned=false;
+  var overlap=missing.some(function(m){ return _wbDropoutLastMissing.indexOf(m)>=0; });
+  var escalate=_wbDropoutLastWasRefresh&&overlap;              // same countries again after a
+  _wbDropoutLastMissing=missing.slice();                       // refresh -> refresh didn't stick
+  console.warn("[worldbook] tile dropout detected: fills missing for ["+missing.join(", ")+"]"
+    +(tiles&&tiles.length?(" in "+tiles.length+" tile(s)"):"")+" - healing via "+(escalate?"setData":"refreshTiles"));
+  if(!escalate&&typeof map.refreshTiles==="function"){
+    try{
+      if(tiles&&tiles.length){ map.refreshTiles("world",tiles); map.refreshTiles("world-lines",tiles); }
+      else { map.refreshTiles("world"); map.refreshTiles("world-lines"); }
+      _wbDropoutLastWasRefresh=true; return;
+    }catch(e){ /* fall through to setData */ }
+  }
+  try{ var s=map.getSource("world"); if(s&&typeof s.setData==="function") s.setData(MAPDATA);
+    _wbDropoutLastWasRefresh=false;
+  }catch(e){ try{ console.warn("[worldbook] tile-dropout heal failed:", e&&e.message?e.message:e); }catch(_){} }
+}
+setInterval(function(){
+  try{
+    if(document.hidden) return;
+    if(typeof subOn!=="undefined"&&subOn) return;              // sub mode restyles world layers
+    if(typeof activeLayer!=="undefined"&&activeLayer==="satellite") return;   // fills invisible
+    var res=_wbDropoutScan();
+    if(!res||!res.missing.length){ _wbDropoutPending=null; return; }
+    var prev=_wbDropoutPending; _wbDropoutPending=res;
+    if(!prev) return;                                          // must persist 2 consecutive scans
+    var stable=res.missing.filter(function(m){ return prev.missing.indexOf(m)>=0; });
+    if(stable.length) _wbDropoutHeal(stable, res.tiles);
+  }catch(e){
+    if(!_wbDropoutErrLogged){ _wbDropoutErrLogged=true;
+      try{ console.warn("[worldbook] dropout watchdog error:", e&&e.message?e.message:e); }catch(_){} }
+  }
+},5000);
+
 let activeLayer="countries";   // Countries reference map opens by default
 let subOn=false;          // subnational mode active
 let currentISO=null;
@@ -469,14 +577,19 @@ function _atlasBoot(){ if(_atlasBooted) return; _atlasBooted=true; try{
   map.addLayer({id:"ocean",type:"fill",source:"ocean",paint:{"fill-color":"#0a1b30"}});
 
     MAPDATA.features.forEach(function(f){ var ck=f.properties.iso3||f.properties.name; f.properties.color_countries = COUNTRY_PASTEL[ck]; f.properties.color_antique = COUNTRY_ANTIQUE[ck]; f.properties.color_countries_light = COUNTRY_PASTEL_LIGHT[ck]; f.properties.color_countries_dark = COUNTRY_PASTEL_DARK[ck]; });
-  map.addSource("world",{type:"geojson",data:MAPDATA,promoteId:"iso3",tolerance:0});
+  // maxzoom:6 (map maxZoom is 9): the data is pre-simplified, so z6 tiles at extent 4096
+  // (~0.001deg) hold full fidelity for z9 viewing, and capping the pyramid cuts the number
+  // of distinct tiles the spinning camera requests/aborts - shrinking exposure to the
+  // maplibre geojson worker abort/reload race the dropout watchdog below guards against.
+  map.addSource("world",{type:"geojson",data:MAPDATA,promoteId:"iso3",tolerance:0,maxzoom:6});
   // Line layers (borders/glows/hover) get their own LINE-geometry source. Rendering the
   // polygon source as lines also strokes geojson-vt's synthetic tile-clip closing edges,
   // which the globe projection exposes as pole-to-pole seams at tile boundaries near the
   // view center (verified live: dark meridian line at lng 90). Clipped LineStrings are
   // merely split at tile bounds - no closing edge - so a line source can't show the seam.
-  // tolerance:0 matches the "world" source so line and fill edges simplify identically.
-  map.addSource("world-lines",{type:"geojson",tolerance:0,data:{type:"FeatureCollection",
+  // tolerance:0 and maxzoom:6 match the "world" source so both sources cut IDENTICAL tile
+  // grids - the dropout watchdog compares them per-tile, which only works if they align.
+  map.addSource("world-lines",{type:"geojson",tolerance:0,maxzoom:6,data:{type:"FeatureCollection",
     features:MAPDATA.features.map(function(f){ var g=f.geometry;
       return {type:"Feature",
         properties:{iso3:f.properties.iso3,color_countries_dark:f.properties.color_countries_dark},
