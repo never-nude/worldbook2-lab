@@ -214,14 +214,10 @@
   #hint.wbfade{opacity:0 !important;pointer-events:none}
 
 /* visitor IP-location marker */
-/* one-shot radar ping at the visitor's IP location: a blue core dot flashes on, and
-   three ring children (added in _wbApplyGeo) radiate outward and fade, staggered like
-   a sonar ping. Every animation runs `1 forwards` - it never repeats; the marker
-   element itself is faded and removed by the timeouts in _wbApplyGeo. */
-.wb-geo-marker{width:12px;height:12px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px 4px rgba(110,168,254,.9);cursor:pointer;position:relative;animation:wbGeoFlash 2.6s ease-out 1 forwards}
-.wb-geo-ring{position:absolute;left:50%;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;border:2.5px solid rgba(110,168,254,.9);box-shadow:0 0 8px rgba(110,168,254,.5),inset 0 0 8px rgba(110,168,254,.35);opacity:0;pointer-events:none;animation:wbGeoPing 2s cubic-bezier(.2,.65,.35,1) 1 forwards}
-@keyframes wbGeoPing{0%{transform:scale(.35);opacity:.95;border-width:3px}60%{opacity:.4}100%{transform:scale(12);opacity:0;border-width:1px}}
-@keyframes wbGeoFlash{0%{box-shadow:0 0 12px 4px rgba(110,168,254,.9)}15%{box-shadow:0 0 34px 15px rgba(110,168,254,1),0 0 60px 26px rgba(110,168,254,.5)}100%{box-shadow:0 0 10px 3px rgba(110,168,254,.7)}}
+.wb-geo-marker{width:14px;height:14px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px 3px rgba(110,168,254,.85);cursor:pointer;position:relative;animation:wbGeoFlash 2.4s ease-out 1 forwards}
+.wb-geo-marker::after{content:"";position:absolute;inset:-13px;border-radius:50%;background:radial-gradient(circle,rgba(110,168,254,0) 0%,rgba(110,168,254,.95) 40%,rgba(110,168,254,.4) 62%,rgba(110,168,254,0) 78%);filter:blur(1px);animation:wbGeoPulse 2.4s ease-out 1 forwards}
+@keyframes wbGeoPulse{0%{transform:scale(.3);opacity:0}18%{transform:scale(.6);opacity:1}100%{transform:scale(2.6);opacity:0}}
+@keyframes wbGeoFlash{0%{box-shadow:0 0 10px 3px rgba(110,168,254,.85)}18%{box-shadow:0 0 32px 14px rgba(110,168,254,1),0 0 58px 24px rgba(110,168,254,.55)}100%{box-shadow:0 0 10px 3px rgba(110,168,254,.85)}}
 .wb-geo-pop-h{font-weight:600;font-size:13px;color:var(--ink);margin-bottom:2px}
 .wb-geo-pop-d{font-size:12px;color:var(--ink);opacity:.85;margin-bottom:6px}
 .wb-geo-pop-s{font-size:10.5px;color:var(--muted);line-height:1.4}
@@ -459,7 +455,7 @@ map.on("error", function(e){ console.warn("[worldbook] MapLibre error:", e && e.
 // running the JS they loaded (a page never picks up new code without a reload), and this
 // tag is how we tell "old build still open" apart from "bug survived the fix" - check
 // `WB_BUILD` in the console or the boot line below.
-window.WB_BUILD="2026-07-02.4 geo-ping";
+window.WB_BUILD="2026-07-02.3 countries-rebuild+sea-collar-removed";
 console.info("[worldbook] build", window.WB_BUILD);
 
 /* ── Countries tile-dropout watchdog ──────────────────────────────────────────
@@ -931,7 +927,6 @@ map.addLayer(countryLabels3D);
     document.getElementById("loading").style.display="none";
     startSpin();
     try{ _wbDropoutBootT=Date.now(); }catch(e){}   // boot window starts at reveal, not script eval
-    try{ _wbGeoRevealReady=true; setTimeout(_wbApplyGeo, 600); }catch(e){}   // geo ping fires just after reveal
     // Boot re-cut: the initial load requests every visible tile at once, which is the
     // heaviest churn window for the maplibre geojson worker race the dropout watchdog
     // guards against - and a tile broken during boot reports "loaded", so the phase-2
@@ -1031,18 +1026,13 @@ map.moveLayer("country-labels");   // fix: MapLibre resolves cross-layer symbol 
   }catch(_e){ console.error("Atlas init error:",_e); document.getElementById("loading").style.display="none"; }
 }
 if(map.isStyleLoaded()) _atlasBoot(); else map.on("load", _atlasBoot);
-var _wbGeo=null, _wbGeoMapReady=false, _wbGeoApplied=false, _wbGeoRevealReady=false;
+var _wbGeo=null, _wbGeoMapReady=false, _wbGeoApplied=false;
 function _wbApplyGeo(){
-  // _wbGeoRevealReady gates the ping until the loading overlay is gone - map "load" and
-  // the IP lookup both resolve while the boot screen still covers the map, and a ping
-  // that radiates behind the overlay is a ping nobody sees.
-  if(!_wbGeo || !_wbGeoMapReady || !_wbGeoRevealReady || _wbGeoApplied) return;
+  if(!_wbGeo || !_wbGeoMapReady || _wbGeoApplied) return;
   _wbGeoApplied=true;
   try{
     var el=document.createElement("div");
     el.className="wb-geo-marker";
-    for(var _ri=0;_ri<3;_ri++){ var _ring=document.createElement("div"); _ring.className="wb-geo-ring";
-      _ring.style.animationDelay=(_ri*0.35)+"s"; el.appendChild(_ring); }
     var _wbMarker=new maplibregl.Marker({element:el})
       .setLngLat([_wbGeo.lng,_wbGeo.lat])
       .setPopup(new maplibregl.Popup({closeButton:false,offset:10}).setHTML(
@@ -1053,10 +1043,10 @@ function _wbApplyGeo(){
       .addTo(map);
     map.flyTo({center:[_wbGeo.lng,_wbGeo.lat], zoom:1.6, bearing:0, pitch:0, duration:2200});
     if(window.console) console.info("[worldbook geo] centered on", _wbGeo.place||(_wbGeo.lat+","+_wbGeo.lng));
-    // one ping, then gone: the last ring launches at +0.7s and radiates for 2s, so hold
-    // until ~2.9s, fade the core dot, then actually remove the marker entirely.
-    setTimeout(function(){ el.style.transition="opacity .6s ease"; el.style.opacity="0"; }, 3000);
-    setTimeout(function(){ try{ _wbMarker.remove(); }catch(e){} }, 3700);
+    // one ping, then gone: hold briefly after the ring pulse (2.4s), fade the whole
+    // marker out, then actually remove it - a wink, not a permanent map fixture.
+    setTimeout(function(){ el.style.transition="opacity .6s ease"; el.style.opacity="0"; }, 2800);
+    setTimeout(function(){ try{ _wbMarker.remove(); }catch(e){} }, 3400);
   }catch(e){ if(window.console) console.warn("[worldbook geo] marker/fly-to failed", e); }
 }
 function _wbGeoFromIpwhois(){
@@ -1246,7 +1236,7 @@ function buildCentroids(){
     IDN:[118,-2.5],PHL:[122,12],MYS:[102,3.7],JPN:[138,37],KOR:[128,36.5],PRK:[127,40],
     IND:[79,22],CHN:[104,35.5],PAK:[69,30],SAU:[45,24],IRN:[53,32],IRQ:[44,33],ARE:[54,24],
     QAT:[51.2,25.3],KWT:[47.8,29.3],OMN:[57,21],YEM:[47,15.5],JOR:[36,31],LBN:[35.8,33.9],
-    SYR:[38,35],ISR:[35,31.5],TUR:[35,39],
+    SYR:[38,35],ISR:[35,31.5],PSE:[35.2,31.9],TUR:[35,39],
     ZAF:[25,-29],NGA:[8,9.5],EGY:[30,27],DZA:[3,28],LBY:[18,27],MAR:[-6,32],TUN:[9,34],
     AGO:[18,-12],COD:[23,-2.5],COG:[15,-1],GAB:[11.7,-0.6],CMR:[12,6],CIV:[-5.5,7.5],GHA:[-1,8],
     SEN:[-14.5,14.5],GIN:[-10,10.5],ETH:[39,9],KEN:[38,0.5],TZA:[35,-6],UGA:[32,1.3],ZMB:[27,-13],
@@ -1717,46 +1707,71 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
     label: "Migration corridors",
     group: "Connections",
     unit: "millions of people (foreign-born stock)",
-    desc: "Largest country-to-country migration corridors — number of people born in the origin country now living in the destination.",
+    desc: "Largest country-to-country migration corridors \u2014 number of people born in the origin country now living in the destination.",
     color: "#6ea8fe", dotColor:"#cfe2ff",
-    legend: "Each arc is a top global migration corridor; thickness = millions of people (foreign-born stock). Thickness scales with zoom for readability.",
-    note: "Top corridors as documented in the IOM World Migration Report 2024, drawn from UN DESA International Migrant Stock 2020 (+ UNHCR for displacement). This is the documented top-20-or-so by stock, not every corridor; census timing and undercounting mean figures are estimates.",
+    legend: "Each arc is a migration corridor with 1 million+ people (foreign-born stock, mid-2024). Thickness = millions of people and scales with zoom. Orange = majority displaced.",
+    note: "All corridors with at least 1 million people, per UN DESA International Migrant Stock 2024 (POP/DB/MIG/Stock/Rev.2024). Stock = accumulated foreign-born population, not annual movement. Corridors that are majority refugees or people in refugee-like situations (per UNHCR) are shown in orange. Census timing and undercounting mean all figures are estimates.",
     sources: [
-      {label:"IOM — World Migration Report 2024 (top corridors)", url:"https://worldmigrationreport.iom.int/what-we-do/world-migration-report-2024"},
-      {label:"UN DESA — International Migrant Stock 2020", url:"https://www.un.org/development/desa/pd/content/international-migrant-stock"}
+      {label:"UN DESA \u2014 International Migrant Stock 2024 (POP/DB/MIG/Stock/Rev.2024)", url:"https://www.un.org/development/desa/pd/content/international-migrant-stock"},
+      {label:"UNHCR \u2014 Refugee Data Finder (displacement classification)", url:"https://www.unhcr.org/refugee-statistics/"}
     ],
     edges: [
-      // w = approx foreign-born stock in millions (UN DESA 2020 / IOM WMR 2024).
-      // Displacement-driven corridors colored orange, as distinguished in the IOM report itself.
-      {from:"MEX",to:"USA",w:10.9},
-      {from:"AFG",to:"IRN",w:3.7,c:"#d4793a"},          // displacement
-      {from:"SYR",to:"TUR",w:3.5,c:"#d4793a"},          // displacement
-      {from:"RUS",to:"UKR",w:3.3,c:"#d4793a"},          // mixed/displacement
-      {from:"UKR",to:"RUS",w:3.3,c:"#d4793a"},
-      {from:"IND",to:"ARE",w:3.5},                       // labour (largest India corridor)
-      {from:"BGD",to:"IND",w:3.1},
-      {from:"IND",to:"USA",w:3.0},
-      {from:"KAZ",to:"RUS",w:2.5},
-      {from:"CHN",to:"USA",w:2.5},
-      {from:"IND",to:"SAU",w:2.5},                       // labour
-      {from:"PHL",to:"USA",w:2.3},
-      {from:"VEN",to:"COL",w:1.8,c:"#d4793a"},          // displacement
-      {from:"BGD",to:"SAU",w:1.3},
-      {from:"GBR",to:"AUS",w:1.1},                       // largest Oceania corridor
-      // UK as a major destination — was the gap in the prior version. Top-20 globally.
-      {from:"IND",to:"GBR",w:0.9},
-      {from:"POL",to:"GBR",w:0.7},
-      {from:"PAK",to:"GBR",w:0.6},
-      // Other documented large corridors
-      {from:"TUR",to:"DEU",w:1.9},
-      {from:"POL",to:"DEU",w:1.7},
-      {from:"MAR",to:"FRA",w:1.5},
-      {from:"DZA",to:"FRA",w:1.4},
-      {from:"MMR",to:"THA",w:1.9},          // mixed (incl. displacement)
-      {from:"AFG",to:"PAK",w:1.6},
-      {from:"NPL",to:"IND",w:1.2},
-      {from:"ROU",to:"ITA",w:1.1},
-      {from:"PRI",to:"USA",w:1.2}
+    // Every corridor with >= 1.0M foreign-born stock at mid-2024 (53 corridors).
+    // v24/v20 = exact stocks, UN DESA POP/DB/MIG/Stock/Rev.2024 Table 1 (both sexes); rk = global rank.
+    // Displacement-majority corridors (14) carry dn + orange per UNHCR classification.
+      {from:"MEX",to:"USA",w:11.28,v24:11279561,v20:11177052,rk:1},
+      {from:"AFG",to:"IRN",w:3.75,c:"#d4793a",v24:3752317,v20:2710601,rk:2,dn:"Majority displaced (UNHCR)"},
+      {from:"SYR",to:"TUR",w:3.56,c:"#d4793a",v24:3563983,v20:3830526,rk:3,dn:"Majority displaced (UNHCR)"},
+      {from:"RUS",to:"UKR",w:3.38,c:"#d4793a",v24:3375095,v20:3330586,rk:4,dn:"Mixed, incl. displacement (UNHCR)"},
+      {from:"IND",to:"ARE",w:3.25,v24:3248545,v20:2861045,rk:5},
+      {from:"IND",to:"USA",w:3.17,v24:3165238,v20:2741155,rk:6},
+      {from:"VEN",to:"COL",w:2.9,c:"#d4793a",v24:2904873,v20:1796066,rk:7,dn:"Displacement, incl. others in need of protection (UNHCR)"},
+      {from:"UKR",to:"RUS",w:2.87,c:"#d4793a",v24:2872612,v20:1800051,rk:8,dn:"Majority displaced (UNHCR)"},
+      {from:"CHN",to:"HKG",w:2.49,v24:2490414,v20:2408447,rk:9},
+      {from:"CHN",to:"USA",w:2.49,v24:2488775,v20:2255170,rk:10},
+      {from:"PSE",to:"JOR",w:2.38,c:"#d4793a",v24:2379525,v20:2289806,rk:11,dn:"UNRWA-registered refugees"},
+      {from:"BGD",to:"SAU",w:2.36,v24:2362680,v20:2120004,rk:12},
+      {from:"BGD",to:"IND",w:2.29,v24:2293959,v20:2429312,rk:13},
+      {from:"PHL",to:"USA",w:2.26,v24:2263697,v20:2159185,rk:14},
+      {from:"YEM",to:"SAU",w:2.0,v24:1999619,v20:1809639,rk:15},
+      {from:"IND",to:"SAU",w:1.95,v24:1953496,v20:1888090,rk:16},
+      {from:"PAK",to:"SAU",w:1.94,v24:1937044,v20:1818172,rk:17},
+      {from:"PRI",to:"USA",w:1.92,v24:1924799,v20:1864991,rk:18},
+      {from:"AFG",to:"PAK",w:1.92,c:"#d4793a",v24:1923453,v20:1598223,rk:19,dn:"Majority displaced (UNHCR)"},
+      {from:"POL",to:"DEU",w:1.88,v24:1883559,v20:1797038,rk:20},
+      {from:"BFA",to:"CIV",w:1.82,v24:1820882,v20:1715826,rk:21},
+      {from:"IDN",to:"MYS",w:1.76,v24:1761502,v20:1693459,rk:22},
+      {from:"MMR",to:"THA",w:1.71,v24:1708695,v20:1576317,rk:23},
+      {from:"IND",to:"PAK",w:1.6,v24:1597134,v20:1597134,rk:24},
+      {from:"VEN",to:"PER",w:1.6,c:"#d4793a",v24:1596667,v20:1016263,rk:25,dn:"Displacement, incl. others in need of protection (UNHCR)"},
+      {from:"SYR",to:"JOR",w:1.59,c:"#d4793a",v24:1593643,v20:1440562,rk:26,dn:"Majority displaced (UNHCR)"},
+      {from:"SLV",to:"USA",w:1.57,v24:1569946,v20:1463484,rk:27},
+      {from:"MYS",to:"SGP",w:1.55,v24:1553249,v20:1384577,rk:28},
+      {from:"SSD",to:"SDN",w:1.51,c:"#d4793a",v24:1507976,v20:867593,rk:29,dn:"Majority displaced (UNHCR)"},
+      {from:"TUR",to:"DEU",w:1.5,v24:1504743,v20:1326045,rk:30},
+      {from:"EGY",to:"SAU",w:1.5,v24:1498313,v20:1475593,rk:31},
+      {from:"DOM",to:"USA",w:1.48,v24:1483418,v20:1289305,rk:32},
+      {from:"VNM",to:"USA",w:1.43,v24:1434631,v20:1396246,rk:33},
+      {from:"UKR",to:"DEU",w:1.42,c:"#d4793a",v24:1416521,v20:269725,rk:34,dn:"Majority displaced (UNHCR)"},
+      {from:"DZA",to:"FRA",w:1.41,v24:1405235,v20:1407480,rk:35},
+      {from:"CUB",to:"USA",w:1.39,v24:1394750,v20:1346576,rk:36},
+      {from:"KAZ",to:"RUS",w:1.32,v24:1321004,v20:1635008,rk:37},
+      {from:"GTM",to:"USA",w:1.3,v24:1298936,v20:1144667,rk:38},
+      {from:"MMR",to:"BGD",w:1.25,c:"#d4793a",v24:1246705,v20:907426,rk:39,dn:"Rohingya displacement (UNHCR)"},
+      {from:"IND",to:"KWT",w:1.23,v24:1231094,v20:1122750,rk:40},
+      {from:"DEU",to:"USA",w:1.14,v24:1137577,v20:1147641,rk:41},
+      {from:"RUS",to:"DEU",w:1.14,v24:1137448,v20:1038231,rk:42},
+      {from:"GBR",to:"AUS",w:1.11,v24:1107102,v20:1171185,rk:43},
+      {from:"UKR",to:"POL",w:1.1,c:"#d4793a",v24:1102774,v20:180211,rk:44,dn:"Majority displaced (UNHCR)"},
+      {from:"MAR",to:"ESP",w:1.09,v24:1088408,v20:914262,rk:45},
+      {from:"KOR",to:"USA",w:1.08,v24:1083174,v20:1091276,rk:46},
+      {from:"ZWE",to:"ZAF",w:1.07,v24:1072620,v20:966487,rk:47},
+      {from:"SDN",to:"TCD",w:1.07,c:"#d4793a",v24:1071034,v20:372594,rk:48,dn:"Majority displaced (UNHCR)"},
+      {from:"MAR",to:"FRA",w:1.07,v24:1066129,v20:1027490,rk:49},
+      {from:"IND",to:"GBR",w:1.04,v24:1044779,v20:946151,rk:50},
+      {from:"BGD",to:"ARE",w:1.02,v24:1024949,v20:902689,rk:51},
+      {from:"IND",to:"CAN",w:1.02,v24:1015630,v20:866951,rk:52},
+      {from:"COL",to:"USA",w:1.01,v24:1008875,v20:867302,rk:53}
     ]
   },
   trade: {
