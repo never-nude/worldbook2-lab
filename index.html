@@ -455,7 +455,7 @@ function _atlasBoot(){ if(_atlasBooted) return; _atlasBooted=true; try{
   map.addLayer({id:"ocean",type:"fill",source:"ocean",paint:{"fill-color":"#0a1b30"}});
 
     MAPDATA.features.forEach(function(f){ var ck=f.properties.iso3||f.properties.name; f.properties.color_countries = COUNTRY_PASTEL[ck]; f.properties.color_antique = COUNTRY_ANTIQUE[ck]; f.properties.color_countries_light = COUNTRY_PASTEL_LIGHT[ck]; f.properties.color_countries_dark = COUNTRY_PASTEL_DARK[ck]; });
-  map.addSource("world",{type:"geojson",data:MAPDATA,promoteId:"iso3"});
+  map.addSource("world",{type:"geojson",data:MAPDATA,promoteId:"iso3",tolerance:0});
   map.addLayer({id:"fills",type:"fill",source:"world",
     paint:{"fill-color":colorExpr("religion"),"fill-opacity":1,
       "fill-color-transition":{duration:500,delay:0},"fill-opacity-transition":{duration:400}}});
