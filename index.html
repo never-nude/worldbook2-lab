@@ -532,7 +532,7 @@ map.on("error", function(e){ console.warn("[worldbook] MapLibre error:", e && e.
 // running the JS they loaded (a page never picks up new code without a reload), and this
 // tag is how we tell "old build still open" apart from "bug survived the fix" - check
 // `WB_BUILD` in the console or the boot line below.
-window.WB_BUILD="2026-07-03.5 flow-hide-edges";
+window.WB_BUILD="2026-07-03.6 route-tooltip-copy";
 console.info("[worldbook] build", window.WB_BUILD);
 
 /* ── Countries tile-dropout watchdog ──────────────────────────────────────────
@@ -3190,7 +3190,7 @@ function hoverHTML(p,isSub){
       const lab=F.dir==="in"?"Owes bilaterally":"Lends bilaterally";
       return `<div class="pop-name">${p.name}</div><div class="pop-sub">${v!=null?lab+": $"+v+"B":lab+": none"}</div>`; }
     if(!F.geo){ const role=rolesFor(c.flowKey, flowIso)[p.iso3];
-      return `<div class="pop-name">${p.name}</div><div class="pop-sub">${role?roleLabels(c.flowKey)[role]:"Not in these routes"}</div>`; }
+      return `<div class="pop-name">${p.name}</div><div class="pop-sub">${role?roleLabels(c.flowKey)[role]:"No documented routes for this country"}</div>`; }
     return `<div class="pop-name">${p.name}</div>`;
   }
   const val = c.type==="categorical" ? (p[c.prop]||"No data") : labelFor(c,p[c.prop]);
