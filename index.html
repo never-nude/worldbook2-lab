@@ -532,7 +532,7 @@ map.on("error", function(e){ console.warn("[worldbook] MapLibre error:", e && e.
 // running the JS they loaded (a page never picks up new code without a reload), and this
 // tag is how we tell "old build still open" apart from "bug survived the fix" - check
 // `WB_BUILD` in the console or the boot line below.
-window.WB_BUILD="2026-07-02.6 geo-ping-30pct";
+window.WB_BUILD="2026-07-02.7 path-layer-data";
 console.info("[worldbook] build", window.WB_BUILD);
 
 /* ── Countries tile-dropout watchdog ──────────────────────────────────────────
@@ -1458,41 +1458,44 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
     desc: "Where the world's oil and gas move: from the big exporters (Gulf, Russia, the Americas, West Africa) to the big consumers (China, India, Europe, Japan).",
     color: "#c2862e", dotColor:"#f0d6a0",
     legend: "Each arc is a major oil/gas export route; dots flow from exporter toward importer.",
-    note: "Major crude-oil and LNG corridors (IEA / EIA / OPEC). Routes thread strategic chokepoints - Hormuz, Malacca, Suez. Magnitudes are relative.",
-    sources: [{label:"IEA - Oil Market Report", url:"https://www.iea.org/topics/oil-market-report"},
-      {label:"U.S. EIA - Petroleum & other liquids", url:"https://www.eia.gov/petroleum/"}],
+    note: "Major crude-oil and LNG corridors, latest year (2024-25), from importer customs / EIA / national ministries. Crude in Mb/d or kb/d, LNG in Mt - not one scale, so arc widths stay indicative. Sanctioned Iran/Venezuela flows to China show ~0 in official customs (tanker-tracker estimates only), so no figure is shown. Routes thread strategic chokepoints - Hormuz, Malacca, Suez.",
+    sources: [{label:"US EIA - crude imports/exports by country", url:"https://www.eia.gov/dnav/pet/pet_move_impcus_a2_nus_ep00_im0_mbblpd_a.htm"},
+      {label:"China GACC customs (via Reuters/Columbia CGEP)", url:"https://www.energypolicy.columbia.edu/"},
+      {label:"India DGCI&S; Japan METI; Korea KNOC; UK DUKES; Spain CORES", url:"https://www.eia.gov/international/analysis/special-topics/World_Oil_Transit_Chokepoints"},
+      {label:"UN Comtrade - LNG (HS 271111)", url:"https://wits.worldbank.org/"}],
     edges: [
-      {from:"SAU",to:"CHN",w:4},{from:"SAU",to:"IND",w:3},{from:"SAU",to:"JPN",w:3},
-      {from:"SAU",to:"KOR",w:2.5},{from:"RUS",to:"CHN",w:4},{from:"RUS",to:"IND",w:3.5},
-      {from:"RUS",to:"TUR",w:2},{from:"IRQ",to:"CHN",w:3},{from:"IRQ",to:"IND",w:2.5},
-      {from:"ARE",to:"CHN",w:2.5},{from:"ARE",to:"JPN",w:2},{from:"KWT",to:"CHN",w:2},
-      {from:"IRN",to:"CHN",w:2.5},{from:"USA",to:"NLD",w:2},{from:"USA",to:"KOR",w:2},
-      {from:"USA",to:"IND",w:1.5},{from:"CAN",to:"USA",w:4},{from:"MEX",to:"USA",w:2},
-      {from:"VEN",to:"CHN",w:1.5},{from:"NGA",to:"IND",w:2},{from:"NGA",to:"ESP",w:1.5},
-      {from:"AGO",to:"CHN",w:2.5},{from:"NOR",to:"GBR",w:1.5},{from:"NOR",to:"DEU",w:1.5},
-      {from:"KAZ",to:"ITA",w:1.5},{from:"LBY",to:"ITA",w:1.5},{from:"DZA",to:"ESP",w:1.5},
-      {from:"QAT",to:"JPN",w:2},{from:"QAT",to:"KOR",w:1.5},{from:"AUS",to:"JPN",w:2},
-      {from:"AUS",to:"CHN",w:2}
+      {from:"SAU",to:"CHN",amt:"~1.57 Mb/d · crude · 2024",w:4},{from:"SAU",to:"IND",amt:"~0.65 Mb/d · crude",w:3},{from:"SAU",to:"JPN",w:3},
+      {from:"SAU",to:"KOR",amt:"0.94 Mb/d · crude",w:2.5},{from:"RUS",to:"CHN",amt:"~2.37 Mb/d · crude · 2025",w:4},{from:"RUS",to:"IND",amt:"~1.75 Mb/d · crude · 2025",w:3.5},
+      {from:"RUS",to:"TUR",w:2},{from:"IRQ",to:"CHN",amt:"~1.19 Mb/d · crude · 2024",w:3},{from:"IRQ",to:"IND",amt:"950 kb/d · crude",w:2.5},
+      {from:"ARE",to:"CHN",amt:"35.5 Mt/yr · crude",w:2.5},{from:"ARE",to:"JPN",w:2},{from:"KWT",to:"CHN",amt:"13.8 Mt/yr · crude",w:2},
+      {from:"IRN",to:"CHN",w:2.5},{from:"USA",to:"NLD",amt:"790 kb/d · crude · 2024",w:2},{from:"USA",to:"KOR",amt:"474 kb/d · crude",w:2},
+      {from:"USA",to:"IND",amt:"222 kb/d · crude",w:1.5},{from:"CAN",to:"USA",amt:"~4.06 Mb/d · crude · 2024",w:4},{from:"MEX",to:"USA",amt:"464 kb/d · crude · 2024",w:2},
+      {from:"VEN",to:"CHN",w:1.5},{from:"NGA",to:"IND",amt:"123 kb/d · crude",w:2},{from:"NGA",to:"ESP",amt:"6.2 Mt/yr",w:1.5},
+      {from:"AGO",to:"CHN",w:2.5},{from:"NOR",to:"GBR",amt:"13 Mt/yr · crude",w:1.5},{from:"NOR",to:"DEU",w:1.5},
+      {from:"KAZ",to:"ITA",amt:"8.3 Mt/yr · crude",w:1.5},{from:"LBY",to:"ITA",amt:"11.9 Mt/yr · crude",w:1.5},{from:"DZA",to:"ESP",amt:"3.75 Mt/yr",w:1.5},
+      {from:"QAT",to:"JPN",amt:"2.87 Mt · LNG · 2024",w:2},{from:"QAT",to:"KOR",amt:"8.88 Mt · LNG · 2024",w:1.5},{from:"AUS",to:"JPN",amt:"25.14 Mt · LNG · 2024",w:2},
+      {from:"AUS",to:"CHN",amt:"26.18 Mt · LNG · 2024",w:2}
     ]
   },
   food: {
     label: "Food & grain", group: "Resources",
-    unit: "major cereal & staple-crop trade",
+    unit: "tonnes/yr (major cereal & oilseed corridors)",
     desc: "The world's breadbasket flows - wheat, maize, soy and rice from the great exporters to import-dependent regions.",
     color: "#e6cf4a", dotColor:"#fbf3c0",
     legend: "Each arc is a major food/grain export route; dots flow from exporter toward importer.",
-    note: "Major cereal & oilseed corridors (FAO / USDA). Includes the wheat flows from Russia & Ukraine that much of the Middle East and Africa depend on. Magnitudes are relative.",
-    sources: [{label:"FAO - Food Outlook", url:"https://www.fao.org/giews/reports/food-outlook/en/"},
-      {label:"USDA - Foreign Agricultural Service", url:"https://www.fas.usda.gov/data"}],
+    note: "Largest bilateral cereal & oilseed corridors, tonnes/yr, latest marketing year (USDA / FAO); marketing years differ by commodity. Russia has published no customs data since March 2022, so Russian splits are analyst port line-up estimates. US→China soybeans collapsed to near zero for ~6 months in 2025 on tariffs — 26.8 Mt is the last normal year. Corridors without a figure are relative weights only.",
+    sources: [{label:"USDA FAS — GAIN reports, GATS, PSD", url:"https://www.fas.usda.gov/data"},
+      {label:"USDA AMS — Brazil soybean exports", url:"https://www.ams.usda.gov/market-news"},
+      {label:"FAOSTAT — detailed trade matrix", url:"https://www.fao.org/faostat/en/#data/TM"}],
     edges: [
-      {from:"USA",to:"MEX",w:3},{from:"USA",to:"CHN",w:3.5},{from:"USA",to:"JPN",w:2},
-      {from:"BRA",to:"CHN",w:4},{from:"ARG",to:"CHN",w:2.5},{from:"RUS",to:"EGY",w:3},
-      {from:"RUS",to:"TUR",w:2},{from:"UKR",to:"EGY",w:2},{from:"UKR",to:"CHN",w:2},
-      {from:"UKR",to:"IDN",w:1.5},{from:"CAN",to:"USA",w:2},{from:"CAN",to:"JPN",w:1.5},
-      {from:"AUS",to:"IDN",w:2},{from:"AUS",to:"CHN",w:2},{from:"FRA",to:"DZA",w:1.5},
+      {from:"USA",to:"MEX",w:3,amt:"24.8M t · corn · 2024"},{from:"USA",to:"CHN",w:3.5,amt:"26.8M t · soybeans · 2024"},{from:"USA",to:"JPN",w:2},
+      {from:"BRA",to:"CHN",w:4,amt:"72.6M t · soybeans · 2024"},{from:"ARG",to:"CHN",w:2.5,amt:"~7M t · soy"},{from:"RUS",to:"EGY",w:3,amt:"8.3M t · wheat · 2024"},
+      {from:"RUS",to:"TUR",w:2,amt:"~7M t · wheat · 2024"},{from:"UKR",to:"EGY",w:2,amt:"2.1M t · wheat · 2024"},{from:"UKR",to:"CHN",w:2,amt:"4.6M t · corn"},
+      {from:"UKR",to:"IDN",w:1.5},{from:"CAN",to:"USA",w:2},{from:"CAN",to:"JPN",w:1.5,amt:"1.7M t · canola · 2024"},
+      {from:"AUS",to:"IDN",w:2,amt:"~4M t · wheat"},{from:"AUS",to:"CHN",w:2},{from:"FRA",to:"DZA",w:1.5,amt:"~1.2M t · wheat"},
       {from:"USA",to:"KOR",w:1.5},{from:"IND",to:"BGD",w:2},{from:"THA",to:"NGA",w:1.5},
-      {from:"VNM",to:"PHL",w:1.5},{from:"USA",to:"EGY",w:1.5},{from:"RUS",to:"IRN",w:1.5},
-      {from:"FRA",to:"EGY",w:1.5},{from:"BRA",to:"IRN",w:1.5},{from:"USA",to:"COL",w:1.5}
+      {from:"VNM",to:"PHL",w:1.5,amt:"3.6M t · rice · 2024"},{from:"USA",to:"EGY",w:1.5},{from:"RUS",to:"IRN",w:1.5,amt:"1.3M t · wheat"},
+      {from:"FRA",to:"EGY",w:1.5},{from:"BRA",to:"IRN",w:1.5,amt:"2.7M t · corn (Jan-Oct) · 2024"},{from:"USA",to:"COL",w:1.5}
     ]
   },
   minerals: {
@@ -1512,14 +1515,14 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
       {label:"Swiss Federal Customs Administration", url:"https://www.bazg.admin.ch"}
     ],
     edges: [
-      {from:"AUS",to:"CHN",w:10},
-      {from:"BRA",to:"CHN",w:6,nm:"Iron ore"},
+      {from:"AUS",to:"CHN",amt:"$79.6B · iron ore · 2024",w:10},
+      {from:"BRA",to:"CHN",w:6,nm:"Iron ore",amt:"$28.7B · iron ore · 2024"},
       {from:"GIN",to:"CHN",w:3,nm:"Iron ore (Simandou, new)",c:"#e07a3a"},
-      {from:"CHL",to:"CHN",w:8,nm:"Copper concentrate"},
-      {from:"PER",to:"CHN",w:7,nm:"Copper concentrate"},
+      {from:"CHL",to:"CHN",w:8,nm:"Copper concentrate",amt:"$5.6B · refined copper only · 2024"},
+      {from:"PER",to:"CHN",w:7,nm:"Copper concentrate",amt:"$1.1B · refined copper only"},
       {from:"MNG",to:"CHN",w:3,nm:"Copper concentrate (overland)"},
-      {from:"GIN",to:"CHN",w:10,nm:"Bauxite"},
-      {from:"IDN",to:"CHN",w:7,nm:"Nickel (processed)"},
+      {from:"GIN",to:"CHN",w:10,nm:"Bauxite",amt:"110.2 Mt · bauxite · 2024"},
+      {from:"IDN",to:"CHN",w:7,nm:"Nickel (processed)",amt:"8.67 Mt · ferronickel/NPI · 2024"},
       {from:"PHL",to:"CHN",w:4,nm:"Nickel ore"},
       {from:"COD",to:"ZAF",w:5,nm:"Cobalt hydroxide (leg 1: land)",c:"#8a95a8"},
       {from:"ZAF",to:"CHN",w:5,nm:"Cobalt hydroxide (leg 2: sea)",c:"#8a95a8"},
@@ -1541,20 +1544,20 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
   },
   wood: {
     label: "Timber & wood", group: "Resources",
-    unit: "logs, lumber, pulp & wood products",
+    unit: "mixed (m³ for logs & sawnwood, tonnes for pulp — see tooltip)",
     desc: "Where wood comes from and goes: boreal and tropical timber, lumber and pulp moving to the big manufacturing and construction markets.",
     color: "#8a9a4a", dotColor:"#e2ecc4",
     legend: "Each arc is a major timber/wood-products trade route; dots flow from exporter toward importer.",
-    note: "Major roundwood, lumber and pulp corridors (FAO FRA / Forest Products). Includes Russian, Canadian and tropical-hardwood flows to China. Magnitudes are relative.",
-    sources: [{label:"FAO - Forest Products Statistics", url:"https://www.fao.org/forestry/statistics/en/"}],
+    note: "Largest bilateral timber, lumber and pulp corridors, 2024, raw UN Comtrade — m³ for logs and sawnwood, tonnes for pulp. Brazil→China and Chile→China are wood pulp, not logs. Russia stopped reporting to Comtrade after 2022, so Russian corridors use China-mirror import data. Several corridors are on the cusp of change from export bans (US→China logs, PNG→China, Gabon/Congo→China). Unlabelled arcs are relative weight only: Russia→Finland collapsed after 2022 sanctions (2021 baseline 4.6M m³ of logs), Myanmar→China's real teak trade moves informally overland outside customs data, and Russia→Japan has no sourced 2024 figure.",
+    sources: [{label:"UN Comtrade — HS4403 (logs), HS4407 (sawnwood), HS4703 (pulp)", url:"https://comtradeplus.un.org/"}, {label:"USDA FAS — China wood products", url:"https://www.fas.usda.gov/data"}],
     edges: [
-      {from:"RUS",to:"CHN",w:4},{from:"CAN",to:"USA",w:4},{from:"CAN",to:"CHN",w:2},
-      {from:"USA",to:"CHN",w:2},{from:"BRA",to:"CHN",w:2},{from:"NZL",to:"CHN",w:2.5},
-      {from:"IDN",to:"CHN",w:2},{from:"MYS",to:"CHN",w:1.5},{from:"DEU",to:"CHN",w:1.5},
-      {from:"SWE",to:"GBR",w:1.5},{from:"FIN",to:"DEU",w:1.5},{from:"RUS",to:"FIN",w:1.5},
-      {from:"CHL",to:"CHN",w:2},{from:"GAB",to:"CHN",w:1.5},{from:"COG",to:"CHN",w:1.5},
-      {from:"MMR",to:"CHN",w:1.5},{from:"PNG",to:"CHN",w:1.5},{from:"USA",to:"JPN",w:1.5},
-      {from:"CAN",to:"JPN",w:1.5},{from:"AUT",to:"ITA",w:1.5},{from:"RUS",to:"JPN",w:1.5}
+      {from:"RUS",to:"CHN",amt:"12.2M m³ · sawnwood · 2024",w:4},{from:"CAN",to:"USA",amt:"28.3M m³ · softwood lumber · 2024",w:4},{from:"CAN",to:"CHN",amt:"1.18M m³ · logs · 2024",w:2},
+      {from:"USA",to:"CHN",amt:"2.2M m³ · logs · 2024",w:2},{from:"BRA",to:"CHN",amt:"8.2M t · wood pulp (not logs) · 2024",w:2},{from:"NZL",to:"CHN",amt:"18.2M m³ · logs · 2024",w:2.5},
+      {from:"IDN",to:"CHN",amt:"70k m³ · sawnwood · 2024",w:2},{from:"MYS",to:"CHN",amt:"129k m³ · sawnwood · 2024",w:1.5},{from:"DEU",to:"CHN",amt:"1.4M m³ · logs · 2024",w:1.5},
+      {from:"SWE",to:"GBR",amt:"2.7M m³ · sawnwood · 2024",w:1.5},{from:"FIN",to:"DEU",amt:"435k m³ · sawnwood · 2024",w:1.5},{from:"RUS",to:"FIN",w:1.5},
+      {from:"CHL",to:"CHN",amt:"2.9M t · wood pulp (not logs) · 2024",w:2},{from:"GAB",to:"CHN",amt:"768k m³ · sawnwood · 2024",w:1.5},{from:"COG",to:"CHN",amt:"407k m³ · logs · 2024",w:1.5},
+      {from:"MMR",to:"CHN",w:1.5},{from:"PNG",to:"CHN",amt:"2.1M m³ · tropical hardwood logs · 2024",w:1.5},{from:"USA",to:"JPN",amt:"1.1M m³ · logs · 2024",w:1.5},
+      {from:"CAN",to:"JPN",amt:"830k m³ · sawnwood · 2024",w:1.5},{from:"AUT",to:"ITA",amt:"3.0M m³ · sawnwood · 2024",w:1.5},{from:"RUS",to:"JPN",w:1.5}
     ]
   },
 
@@ -1564,18 +1567,26 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
     desc: "The great ocean surface currents that move heat around the planet — warm currents (red) carry tropical heat poleward; cold currents (blue) return.",
     color: "#e0683f", dotColor:"#ffd9c4",
     legend: "Flowing lines trace major ocean currents. Red = warm current, blue = cold. Dots show the direction of flow.",
-    note: "Schematic paths of the major surface currents (Gulf Stream, Kuroshio, Antarctic Circumpolar, Humboldt, Agulhas, etc.). Illustrative, not exact streamlines.",
-    sources: [{label:"NOAA — Ocean currents", url:"https://oceanservice.noaa.gov/education/tutorial_currents/"}],
+    note: "Schematic paths, not exact streamlines. Transports in Sverdrups (Sv) at the cited measurement section — western-boundary currents (Gulf Stream, Kuroshio, Agulhas) grow far larger downstream.",
+    sources: [
+      {label:"NOAA — Ocean currents (paths)", url:"https://oceanservice.noaa.gov/education/tutorial_currents/"},
+      {label:"Meinen, Baringer & Garcia 2010 — Florida Current transport (Deep-Sea Res. I)", url:"https://www.aoml.noaa.gov/phod/docs/2010_DSRI_Meinen_etal_LongTermFC.pdf"},
+      {label:"Donohue et al. 2016 — Total ACC transport at Drake Passage (GRL)", url:"https://digitalcommons.uri.edu/gsofacpubs/1235/"},
+      {label:"Beal et al. 2015 — Agulhas Current transport (J. Phys. Oceanogr.)", url:"https://journals.ametsoc.org/doi/abs/10.1175/JPO-D-14-0119.1"},
+      {label:"Qiu 2001 — Kuroshio (Encyclopedia of Ocean Sciences)", url:"https://www.soest.hawaii.edu/oceanography/bo/Q01.pdf"},
+      {label:"Hernández-Guerra et al. 2005 — Canary Current (JGR Oceans)", url:"https://accedacris.ulpgc.es/bitstream/10553/50059/1/Canary_current_north.pdf"},
+      {label:"Czeschel et al. 2015 — Peru-Chile Undercurrent (Ocean Science)", url:"https://os.copernicus.org/articles/11/455/2015/os-11-455-2015.pdf"}
+    ],
     edges: [
-      {nm:"Gulf Stream",amt:"warm \u00b7 ~30 Sv",c:"#e0683f",w:2.4,path:[[-80,25],[-75,32],[-68,39],[-58,43],[-40,48],[-22,53],[-8,57],[2,60]]},
+      {nm:"Gulf Stream",amt:"warm \u00b7 ~32 Sv (150 Sv downstream)",c:"#e0683f",w:2.4,path:[[-80,25],[-75,32],[-68,39],[-58,43],[-40,48],[-22,53],[-8,57],[2,60]]},
       {nm:"Kuroshio Current",amt:"warm \u00b7 ~25 Sv",c:"#e0683f",w:2.2,path:[[122,20],[128,27],[138,34],[150,39],[162,41],[175,40]]},
-      {nm:"Brazil Current",amt:"warm \u00b7 ~15 Sv",c:"#e0683f",w:1.7,path:[[-38,-10],[-44,-20],[-50,-30],[-56,-38],[-58,-44]]},
-      {nm:"Agulhas Current",amt:"warm \u00b7 ~70 Sv",c:"#e0683f",w:3.0,path:[[35,-24],[30,-32],[24,-36],[18,-37],[12,-36]]},
-      {nm:"California Current",amt:"cold \u00b7 ~10 Sv",c:"#4f93d6",w:1.4,path:[[-125,46],[-123,39],[-119,31],[-113,23],[-108,18]]},
-      {nm:"Humboldt Current",amt:"cold \u00b7 ~18 Sv",c:"#4f93d6",w:1.9,path:[[-73,-44],[-72,-33],[-75,-22],[-80,-10],[-82,-2],[-83,4]]},
-      {nm:"Canary Current",amt:"cold \u00b7 ~10 Sv",c:"#4f93d6",w:1.4,path:[[-14,32],[-18,24],[-21,16],[-22,10],[-21,4]]},
-      {nm:"Labrador Current",amt:"cold \u00b7 ~5 Sv",c:"#4f93d6",w:1.0,path:[[-52,48],[-50,44],[-66,41],[-72,40]]},
-      {nm:"Antarctic Circumpolar Current",amt:"~150 Sv \u2014 largest on Earth",c:"#7fb0d6",w:4.0,path:[[-60,-57],[-20,-55],[20,-56],[70,-58],[120,-60],[170,-62],[-150,-61],[-100,-59],[-65,-58]]}
+      {nm:"Brazil Current",amt:"warm \u00b7 ~14 Sv",c:"#e0683f",w:1.7,path:[[-38,-10],[-44,-20],[-50,-30],[-56,-38],[-58,-44]]},
+      {nm:"Agulhas Current",amt:"warm \u00b7 ~77 Sv",c:"#e0683f",w:3.0,path:[[35,-24],[30,-32],[24,-36],[18,-37],[12,-36]]},
+      {nm:"California Current",amt:"cold \u00b7 ~5 Sv",c:"#4f93d6",w:1.4,path:[[-125,46],[-123,39],[-119,31],[-113,23],[-108,18]]},
+      {nm:"Humboldt Current",amt:"cold \u00b7 ~1.4 Sv (undercurrent)",c:"#4f93d6",w:1.9,path:[[-73,-44],[-72,-33],[-75,-22],[-80,-10],[-82,-2],[-83,4]]},
+      {nm:"Canary Current",amt:"cold \u00b7 ~4.7 Sv",c:"#4f93d6",w:1.4,path:[[-14,32],[-18,24],[-21,16],[-22,10],[-21,4]]},
+      {nm:"Labrador Current",amt:"cold \u00b7 ~4 Sv",c:"#4f93d6",w:1.0,path:[[-52,48],[-50,44],[-66,41],[-72,40]]},
+      {nm:"Antarctic Circumpolar Current",amt:"~134\u2013173 Sv \u00b7 largest on Earth",c:"#7fb0d6",w:4.0,path:[[-60,-57],[-20,-55],[20,-56],[70,-58],[120,-60],[170,-62],[-150,-61],[-100,-59],[-65,-58]]}
     ]
   },
   flyways: {
@@ -1584,15 +1595,15 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
     desc: "The great aerial highways billions of migratory birds follow between northern breeding grounds and southern wintering grounds each year.",
     color: "#74c98a", dotColor:"#dff7e4",
     legend: "Each ribbon is a major flyway; dots show the southbound direction of autumn migration.",
-    note: "The world's principal flyways (East Atlantic, Mediterranean/Black Sea, East Asian-Australasian, the two American flyways, Central Asian). Schematic.",
-    sources: [{label:"Convention on Migratory Species — Flyways", url:"https://www.cms.int/en/page/flyways"}],
+    note: "The world's principal flyways; counts mix one-time censuses (stock) and birds/yr using a key site (flow), labelled per ribbon. Atlantic/Mississippi and Med/Black Sea totals are not established. Schematic.",
+    sources: [{label:"EAAFP — East Asian–Australasian Flyway brochure 2023", url:"https://www.env.go.jp/nature/eaafp/pdf/EAAFP_brochure_2023_EN.pdf"}, {label:"Wadden Sea Flyway Initiative — East Atlantic Flyway census 2023", url:"https://www.waddensea-worldheritage.org/insights-2023-east-atlantic-flyway-counts-highlight-global-efforts-protection-migratory-birds"}, {label:"CMS — Central Asian Flyway Action Plan", url:"https://www.cms.int/sites/default/files/document/inf_01_actionplan_en_0.pdf"}, {label:"BirdLife International — Migratory birds", url:"https://www.birdlife.org/migratory-birds/"}, {label:"USFWS — Administrative flyways", url:"https://www.fws.gov/partner/migratory-bird-program-administrative-flyways"}],
     edges: [
-      {w:2,path:[[18,74],[10,64],[2,52],[-4,41],[-11,29],[-16,16],[-15,6]]},
-      {w:2,path:[[55,70],[40,58],[30,46],[26,34],[29,21],[31,9]]},
-      {w:2.5,path:[[150,72],[142,55],[126,38],[114,22],[120,4],[132,-12],[146,-32]]},
-      {w:2,path:[[-95,72],[-86,55],[-80,38],[-78,22],[-70,7],[-60,-12],[-58,-32]]},
-      {w:2,path:[[-150,68],[-132,54],[-122,40],[-110,22],[-90,4],[-76,-16],[-72,-38]]},
-      {w:1.6,path:[[78,70],[74,55],[72,38],[76,22],[80,10]]}
+      {nm:"East Atlantic Flyway",amt:"up to 12M birds/yr · Wadden Sea",w:2,path:[[18,74],[10,64],[2,52],[-4,41],[-11,29],[-16,16],[-15,6]]},
+      {nm:"Mediterranean/Black Sea Flyway",amt:"1.5M+ soaring birds twice/yr",w:2,path:[[55,70],[40,58],[30,46],[26,34],[29,21],[31,9]]},
+      {nm:"East Asian-Australasian Flyway",amt:"50M+ waterbirds · 210+ species",w:2.5,path:[[150,72],[142,55],[126,38],[114,22],[120,4],[132,-12],[146,-32]]},
+      {nm:"Atlantic/Mississippi Flyway",amt:"~40% of N. America’s waterfowl",w:2,path:[[-95,72],[-86,55],[-80,38],[-78,22],[-70,7],[-60,-12],[-58,-32]]},
+      {nm:"Pacific/Central Flyway",amt:"~1B birds/yr",w:2,path:[[-150,68],[-132,54],[-122,40],[-110,22],[-90,4],[-76,-16],[-72,-38]]},
+      {nm:"Central Asian Flyway",amt:"182 waterbird species · 279 populations",w:1.6,path:[[78,70],[74,55],[72,38],[76,22],[80,10]]}
     ]
   },
   dust: {
@@ -1601,11 +1612,11 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
     desc: "Each year the wind lifts hundreds of millions of tonnes of Saharan dust across the Atlantic — fertilising the Amazon and feeding Caribbean skies.",
     color: "#d4a857", dotColor:"#f6e6b8",
     legend: "Dust plumes carried west on the trade winds from the Sahara toward the Amazon and Caribbean.",
-    note: "Schematic of the trans-Atlantic Saharan Air Layer transport (strongest in northern summer).",
-    sources: [{label:"NASA Earth Observatory — Saharan dust", url:"https://earthobservatory.nasa.gov/images/event/86353/saharan-dust"}],
+    note: "Schematic plume paths; tonnages are the peer-reviewed CALIPSO satellite lidar record (Yu et al. 2015, 2007–2013), not the older MODIS 240-Tg or NASA '40 million tons' popular figures. The winter–spring plume feeds the Amazon; the summer plume peaks in the Caribbean (Jun–Aug).",
+    sources: [{label:"Yu et al. 2015 — Trans-Atlantic dust transport (Remote Sensing of Environment)", url:"https://doi.org/10.1016/j.rse.2014.12.010"},{label:"Yu et al. 2015 — Fertilizing role of African dust in the Amazon (GRL)", url:"https://doi.org/10.1002/2015GL063040"},{label:"Kok et al. 2021 — Global dust cycle (Atmos. Chem. Phys.)", url:"https://acp.copernicus.org/articles/21/8169/2021/"}],
     edges: [
-      {w:2.5,path:[[2,18],[-18,16],[-38,13],[-55,9],[-64,4],[-62,-3]]},
-      {w:2,path:[[-8,23],[-32,21],[-56,18],[-72,16],[-80,17]]}
+      {nm:"Sahara → Amazon",amt:"28 Tg/yr · +22,000 t phosphorus · Dec–May",w:2.5,path:[[2,18],[-18,16],[-38,13],[-55,9],[-64,4],[-62,-3]]},
+      {nm:"Sahara → Caribbean",amt:"43 Tg/yr crosses the Atlantic · Jun–Aug",w:2,path:[[-8,23],[-32,21],[-56,18],[-72,16],[-80,17]]}
     ]
   },
   silkroad: {
@@ -1614,11 +1625,11 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
     desc: "The network of routes that carried silk, spices, ideas, religions and plagues between China, Central Asia, Persia, the Arab world and Europe.",
     color: "#d9a441", dotColor:"#f4e2b0",
     legend: "Gold = the overland caravan routes; amber = the maritime spice route. Dots run west, as the silk did.",
-    note: "Composite of the principal overland and maritime Silk Road corridors. Routes shifted over centuries; this is illustrative.",
-    sources: [{label:"UNESCO — Silk Roads Programme", url:"https://en.unesco.org/silkroad/"}],
+    note: "Composite of the principal overland and maritime Silk Road corridors. Routes shifted over centuries; no reliable aggregate trade volume exists, so only datable facts (route length, dates, Pliny's contested sesterces) are cited.",
+    sources: [{label:"Britannica — Silk Road trade route", url:"https://www.britannica.com/topic/Silk-Road-trade-route"},{label:"UNESCO — About the Silk Roads", url:"https://www.unesco.org/en/silk-roads/about-silk-roads"},{label:"Pliny, Natural History Bk XII (Perseus/Tufts)", url:"https://www.perseus.tufts.edu/hopper/text?doc=Perseus%3Atext%3A1999.02.0137%3Abook%3D12%3Achapter%3D41"},{label:"Valerie Hansen (Yale) — The Silk Road trade", url:"https://history.yale.edu/sites/default/files/files/hansen-silk-road-trade.pdf"}],
     edges: [
-      {c:"#d9a441",w:2.5,path:[[109,34],[100,38],[88,43],[75,40],[64,39],[52,35],[44,33],[36,34],[29,41]]},
-      {c:"#c9893a",w:2,path:[[113,23],[108,9],[98,6],[80,7],[72,18],[58,23],[50,15],[43,13],[35,22]]}
+      {nm:"Silk Road (overland)",amt:"~6,400 km · silk west, gold east · from 138 BCE",c:"#d9a441",w:2.5,path:[[109,34],[100,38],[88,43],[75,40],[64,39],[52,35],[44,33],[36,34],[29,41]]},
+      {nm:"Maritime spice route",amt:"Pliny: Rome drained ~100M sesterces/yr (contested)",c:"#c9893a",w:2,path:[[113,23],[108,9],[98,6],[80,7],[72,18],[58,23],[50,15],[43,13],[35,22]]}
     ]
   },
   voyages: {
@@ -1627,13 +1638,13 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
     desc: "Four voyages that stitched the world together: Zheng He's treasure fleets, da Gama to India, Columbus to the Americas, and Magellan's circumnavigation.",
     color: "#6ec6b0", dotColor:"#e6fff7",
     legend: "Each colored track is one expedition; dots follow the direction of the outward voyage.",
-    note: "Approximate tracks of Zheng He (1405-33), da Gama (1497-99), Columbus (1492), and the Magellan-Elcano circumnavigation (1519-22).",
-    sources: [{label:"Britannica — Age of Discovery", url:"https://www.britannica.com/topic/European-exploration"}],
+    note: "Approximate tracks of Zheng He (1405-33), da Gama (1497-99), Columbus (1492), and the Magellan-Elcano circumnavigation (1519-22). Crew figures vary slightly across sources, and Zheng He's ~400 ft treasure-ship length is disputed (from a 1597 novel; scholars say 250-300 ft).",
+    sources: [{label:"Mariners' Museum — Zheng He / Columbus / Magellan", url:"https://exploration.marinersmuseum.org/subject/zheng-he/"},{label:"Britannica — Vasco da Gama", url:"https://www.britannica.com/biography/Vasco-da-Gama"},{label:"Royal Museums Greenwich — Ferdinand Magellan", url:"https://www.rmg.co.uk/stories/topics/ferdinand-magellan"}],
     edges: [
-      {c:"#6ec6b0",w:2,path:[[120,32],[110,15],[100,6],[80,8],[60,18],[45,12],[40,-4]]},
-      {c:"#5fae5f",w:2,path:[[-9,38],[-17,15],[-10,-15],[18,-35],[35,-25],[45,-5],[73,15]]},
-      {c:"#e0a93a",w:2,path:[[-6,37],[-18,28],[-40,21],[-60,18],[-74,20]]},
-      {c:"#c45fae",w:2,path:[[-6,37],[-25,5],[-48,-25],[-68,-53],[-100,-33],[-150,-8],[123,11]]}
+      {nm:"Zheng He treasure fleet",amt:"62 treasure ships · 27,800 crew · 1405",c:"#6ec6b0",w:2,path:[[120,32],[110,15],[100,6],[80,8],[60,18],[45,12],[40,-4]]},
+      {nm:"Vasco da Gama",amt:"4 ships · 170 crew · 55 survived · 1497",c:"#5fae5f",w:2,path:[[-9,38],[-17,15],[-10,-15],[18,-35],[35,-25],[45,-5],[73,15]]},
+      {nm:"Columbus",amt:"3 ships · ~87 crew · 1492",c:"#e0a93a",w:2,path:[[-6,37],[-18,28],[-40,21],[-60,18],[-74,20]]},
+      {nm:"Magellan–Elcano",amt:"5 ships · 18 of ~270 returned · 1519–22",c:"#c45fae",w:2,path:[[-6,37],[-25,5],[-48,-25],[-68,-53],[-100,-33],[-150,-8],[123,11]]}
     ]
   },
   flights: {
@@ -1642,14 +1653,14 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
     desc: "Some of the world's busiest international passenger air corridors — the great-circle paths jets actually fly.",
     color: "#6ed0e0", dotColor:"#e3fbff",
     legend: "Each arc is a heavily-trafficked international flight corridor.",
-    note: "A selection of high-traffic international corridors (great-circle paths between hub countries). Illustrative, not a full network.",
-    sources: [{label:"OAG / IATA — air traffic statistics", url:"https://www.iata.org/en/publications/economics/"}],
+    note: "Busiest international corridors ranked by OAG scheduled seats/yr — seat capacity, not passengers boarded. Labeled arcs carry 2024 OAG seat counts; the rest are real corridors whose exact figures sit behind OAG's paid data.",
+    sources: [{label:"OAG — Busiest international routes 2024/2025", url:"https://www.oag.com/busiest-routes-world-2025"},{label:"OAG — Hong Kong–Taipei world's busiest international route 2024", url:"https://www.oag.com/pressroom/hong-kong-taipei-worlds-busiest-international-airline-route-2024"}],
     edges: [
-      {from:"HKG",to:"TWN",w:3},{from:"KOR",to:"JPN",w:3},{from:"ARE",to:"IND",w:3},
-      {from:"GBR",to:"USA",w:3},{from:"USA",to:"MEX",w:2.5},{from:"GBR",to:"ESP",w:2.5},
+      {from:"HKG",to:"TWN",amt:"6.78M seats/yr · 2024",w:3},{from:"KOR",to:"JPN",amt:"5.41M seats/yr · ICN–NRT · 2024",w:3},{from:"ARE",to:"IND",w:3},
+      {from:"GBR",to:"USA",amt:"4.01M seats/yr · LHR–JFK · 2024",w:3},{from:"USA",to:"MEX",w:2.5},{from:"GBR",to:"ESP",w:2.5},
       {from:"ARE",to:"GBR",w:2.5},{from:"USA",to:"CAN",w:2.5},{from:"JPN",to:"CHN",w:2.5},
       {from:"KOR",to:"CHN",w:2},{from:"THA",to:"CHN",w:2},{from:"USA",to:"JPN",w:2.5},
-      {from:"AUS",to:"NZL",w:2},{from:"QAT",to:"IND",w:2},{from:"SAU",to:"EGY",w:2},
+      {from:"AUS",to:"NZL",w:2},{from:"QAT",to:"IND",w:2},{from:"SAU",to:"EGY",amt:"5.47M seats/yr · Cairo–Jeddah · 2024",w:2},
       {from:"FRA",to:"USA",w:2},{from:"DEU",to:"USA",w:2},{from:"BRA",to:"USA",w:2},
       {from:"SGP",to:"AUS",w:2},{from:"IND",to:"GBR",w:2}
     ]
@@ -1660,13 +1671,18 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
     desc: "The arteries of seaborne trade — and the chokepoints they squeeze through: Malacca, Suez, Panama, Hormuz, Gibraltar, the Cape.",
     color: "#3fb6a8", dotColor:"#d6fff8",
     legend: "Each lane is a primary container-shipping route; the tight bends are the world's strategic chokepoints.",
-    note: "Schematic of the main East-West shipping lanes through Malacca, Suez, the Cape, and Panama. Illustrative.",
-    sources: [{label:"UNCTAD — Review of Maritime Transport", url:"https://unctad.org/rmt"}],
+    note: "Schematic lanes tagged with each chokepoint's sourced figure. UNCTAD shares are % of world seaborne trade by volume (Malacca alone carries 23.7%), while the Hormuz figure is oil in Mb/d — different denominators. Post-2023 crises reshaped traffic: Red Sea diversions cut Suez container tonnage 82% (Feb 2024) and sent ships around the Cape (+12 days), and the drought-hit Panama Canal moved 423 Mt in FY2024, down 21% from FY2023 (511 Mt).",
+    sources: [
+      {label:"UNCTAD — Review of Maritime Transport 2024", url:"https://unctad.org/system/files/official-document/rmt2024ch1_en.pdf"},
+      {label:"EIA — World Oil Transit Chokepoints (through 1H2025)", url:"https://www.eia.gov/international/analysis/special-topics/World_Oil_Transit_Chokepoints"},
+      {label:"Panama Canal Authority — FY2024 results", url:"https://pancanal.com/en/presents-financial-results-for-fy24-with-a-focus-on-sustainability-and-the-future/"},
+      {label:"UNCTAD — Red Sea rapid assessment (Feb 2024)", url:"https://unctad.org/system/files/official-document/osginf2024d2_en.pdf"}
+    ],
     edges: [
-      {w:3,path:[[122,31],[114,5],[101,3],[80,6],[57,12],[44,13],[33,28],[32,31],[18,34],[6,37],[-5,36],[-2,44],[4,52]]},
-      {w:2.5,path:[[122,31],[140,34],[165,40],[-170,42],[-140,40],[-122,35],[-118,34]]},
-      {w:2,path:[[121,31],[155,18],[-175,8],[-120,7],[-90,8],[-80,9],[-79,9.2],[-75,15],[-74,20]]},
-      {w:2,path:[[72,18],[63,22],[57,25],[56,26.5],[57,25.5],[60,22],[68,15],[78,8]]}
+      {nm:"Asia–Europe via Malacca + Suez",amt:"Suez ≈10% of world sea trade · 22% of containers",w:3,path:[[122,31],[114,5],[101,3],[80,6],[57,12],[44,13],[33,28],[32,31],[18,34],[6,37],[-5,36],[-2,44],[4,52]]},
+      {nm:"Trans-Pacific → US West Coast",amt:"Shanghai 50M TEU · world’s busiest port",w:2.5,path:[[122,31],[140,34],[165,40],[-170,42],[-140,40],[-122,35],[-118,34]]},
+      {nm:"Trans-Pacific → Panama Canal",amt:"~3% of world sea trade · 9,944 transits FY24",w:2,path:[[121,31],[155,18],[-175,8],[-120,7],[-90,8],[-80,9],[-79,9.2],[-75,15],[-74,20]]},
+      {nm:"Persian Gulf oil via Hormuz",amt:"20.9 Mb/d · ~20% of world oil · 2025",w:2,path:[[72,18],[63,22],[57,25],[56,26.5],[57,25.5],[60,22],[68,15],[78,8]]}
     ]
   },
   refugees: {
@@ -1675,12 +1691,12 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
     desc: "Where the world's refugees have fled — forced displacement from conflict and crisis to neighbouring host countries.",
     color: "#e0792f", dotColor:"#ffd9b8",
     legend: "Each arc is a major refugee corridor; dots flow from origin toward the host country.",
-    note: "Major corridors from UNHCR Global Trends. Most refugees are hosted in neighbouring countries; figures are relative.",
-    sources: [{label:"UNHCR — Global Trends / Refugee Data", url:"https://www.unhcr.org/refugee-statistics/"}],
+    note: "Major corridors from UNHCR Global Trends; rankings and magnitudes are end-2024 vintage. By end-2025 Venezuela (6.5M) leads, ahead of Ukraine (5.2M) and Syria (4.9M) — the Venezuela figure includes 'others in need of international protection', not only Convention refugees. Most refugees are hosted in neighbouring countries; figures are relative.",
+    sources: [{label:"UNHCR — Global Trends / Refugee Data Finder (end-2025)", url:"https://www.unhcr.org/refugee-statistics"}],
     edges: [
       {from:"SYR",to:"TUR",w:3.5},{from:"SYR",to:"LBN",w:2},{from:"SYR",to:"JOR",w:2},
       {from:"AFG",to:"IRN",w:3},{from:"AFG",to:"PAK",w:3},{from:"UKR",to:"POL",w:3},
-      {from:"UKR",to:"DEU",w:2.5},{from:"VEN",to:"COL",w:3},{from:"VEN",to:"PER",w:2},
+      {from:"UKR",to:"DEU",w:2.5},{from:"VEN",to:"COL",amt:"2.8M hosted · end-2025",w:3},{from:"VEN",to:"PER",w:2},
       {from:"SSD",to:"UGA",w:2.5},{from:"SSD",to:"SDN",w:2},{from:"MMR",to:"BGD",w:2.5},
       {from:"SOM",to:"KEN",w:2},{from:"SOM",to:"ETH",w:2},{from:"COD",to:"UGA",w:2},
       {from:"SDN",to:"TCD",w:2},{from:"SDN",to:"EGY",w:2},{from:"BDI",to:"TZA",w:1.5},
@@ -1689,20 +1705,24 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
   },
   students: {
     label: "International students", group: "Human movement",
-    unit: "major international student corridors",
+    unit: "international students enrolled (stock, latest year)",
     desc: "Where students cross borders to study — the flows of tertiary students from home countries to the big education destinations.",
     color: "#6ea8fe", dotColor:"#dcebff",
     legend: "Each arc is a major international-student corridor; dots flow from origin toward the host country.",
-    note: "Top corridors from UNESCO UIS / OECD inbound-mobility data. Figures are relative.",
-    sources: [{label:"UNESCO Institute for Statistics — Global Flow of Tertiary Students", url:"https://uis.unesco.org/en/uis-student-flow"}],
+    note: "Enrollment stocks from each destination's own authority (IIE Open Doors, HESA, Australian Dept of Education, IRCC, JASSO, Campus France). Instruments differ — Canada counts study-permit holders — and 2024–25 policy caps cut Canada and UK inflows sharply.",
+    sources: [
+      {label:"IIE Open Doors 2024 (US)", url:"https://opendoorsdata.org/wp-content/uploads/2024/11/OD24_Fast-Facts_2024-1.pdf"},
+      {label:"HESA (UK) 2023/24", url:"https://www.hesa.ac.uk/data-and-analysis/students"},
+      {label:"Australian Dept of Education; IRCC (Canada); JASSO (Japan); Campus France", url:"https://www.education.gov.au/international-education-data-and-research"}
+    ],
     edges: [
-      {from:"CHN",to:"USA",w:3.5},{from:"IND",to:"USA",w:3},{from:"CHN",to:"GBR",w:2.5},
-      {from:"IND",to:"GBR",w:2},{from:"CHN",to:"AUS",w:2.5},{from:"IND",to:"AUS",w:2.5},
-      {from:"CHN",to:"CAN",w:2},{from:"IND",to:"CAN",w:2.5},{from:"VNM",to:"USA",w:1.5},
-      {from:"KOR",to:"USA",w:1.5},{from:"CHN",to:"JPN",w:1.5},{from:"NGA",to:"GBR",w:1.5},
-      {from:"NGA",to:"USA",w:1.5},{from:"SAU",to:"USA",w:1.5},{from:"FRA",to:"CAN",w:1.5},
-      {from:"NPL",to:"AUS",w:1.5},{from:"MAR",to:"FRA",w:1.5},{from:"DEU",to:"GBR",w:1.2},
-      {from:"PAK",to:"GBR",w:1.5},{from:"BRA",to:"USA",w:1.2}
+      {from:"CHN",to:"USA",amt:"277,398 students · 2024",w:3.5},{from:"IND",to:"USA",amt:"331,602 students · 2024",w:3},{from:"CHN",to:"GBR",amt:"149,885 students · 2024",w:2.5},
+      {from:"IND",to:"GBR",amt:"166,310 students · 2024",w:2},{from:"CHN",to:"AUS",amt:"189,055 students · 2024",w:2.5},{from:"IND",to:"AUS",amt:"138,316 students · 2024",w:2.5},
+      {from:"CHN",to:"CAN",amt:"101,640 study-permit holders",w:2},{from:"IND",to:"CAN",amt:"426,195 study-permit holders · 2023",w:2.5},{from:"VNM",to:"USA",amt:"22,066 students",w:1.5},
+      {from:"KOR",to:"USA",amt:"43,149 students",w:1.5},{from:"CHN",to:"JPN",amt:"123,485 students · 2024",w:1.5},{from:"NGA",to:"GBR",amt:"57,505 students · 2024",w:1.5},
+      {from:"NGA",to:"USA",amt:"20,029 students",w:1.5},{from:"SAU",to:"USA",amt:"14,828 students",w:1.5},{from:"FRA",to:"CAN",amt:"26,825 study-permit holders",w:1.5},
+      {from:"NPL",to:"AUS",amt:"65,521 students · 2024",w:1.5},{from:"MAR",to:"FRA",amt:"45,162 students",w:1.5},{from:"DEU",to:"GBR",amt:"7,105 students",w:1.2},
+      {from:"PAK",to:"GBR",amt:"45,720 students · 2024",w:1.5},{from:"BRA",to:"USA",amt:"16,877 students",w:1.2}
     ]
   },
 
@@ -1713,9 +1733,10 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
     desc: "Cross-border human-trafficking corridors \u2014 victims documented moving from origin countries to destinations for forced labour, sexual exploitation, or other exploitation. Only transregional corridors are drawn; most trafficking is in fact domestic.",
     color: "#c45fae", dotColor:"#f0c4e6",
     legend: "Each arc is a documented cross-border corridor with 100+ victim case records (2002\u20132024). Thickness scales with case count (square-root scale, so smaller real corridors stay visible next to the largest). Color = dominant exploitation type: pink = forced labour, red = sexual exploitation, violet = other/mixed.",
-    note: "Every corridor with at least 100 documented victim case records, 2002\u20132024, from the Counter Trafficking Data Collaborative's Global Synthetic Dataset v2026 (IOM, Polaris Project, A21, RecollectiV, OTSH). Counts are case records referred to these specific partner organizations, not a measure of true prevalence \u2014 they reflect where these partners operate and where cases get reported, which favors some corridors over others with real but less-documented trafficking. Individual case records are released as a differentially private synthetic dataset (statistically representative, not real people) specifically to protect victim identities \u2014 standard practice for data this sensitive, not a limitation unique to this layer.",
+    note: "Every corridor with at least 100 documented victim case records, 2002\u20132024, from the Counter Trafficking Data Collaborative's Global Synthetic Dataset v2026 (IOM, Polaris Project, A21, RecollectiV, OTSH). Counts are case records referred to these specific partner organizations, not a measure of true prevalence \u2014 they reflect where these partners operate and where cases get reported, which favors some corridors over others with real but less-documented trafficking. Individual case records are released as a differentially private synthetic dataset (statistically representative, not real people) specifically to protect victim identities \u2014 standard practice for data this sensitive, not a limitation unique to this layer. Corridor directions and widths are indicative of documented detection patterns, not measured trafficking magnitudes — detection data severely undercount true flows and are shaped by enforcement and reporting capacity. For global scale, UNODC's Global Report on Trafficking in Persons 2024 reports detected victims worldwide rose 25% in 2022 vs 2019, with victims of 162 nationalities detected in 128 destination countries.",
     sources: [
-      {label:"CTDC \u2014 Counter Trafficking Data Collaborative, Global Synthetic Dataset v2026", url:"https://www.ctdatacollaborative.org/page/global-synthetic-dataset"}
+      {label:"CTDC \u2014 Counter Trafficking Data Collaborative, Global Synthetic Dataset v2026", url:"https://www.ctdatacollaborative.org/page/global-synthetic-dataset"},
+      {label:"UNODC \u2014 Global Report on Trafficking in Persons 2024", url:"https://www.unodc.org/documents/data-and-analysis/glotip/2024/GLOTIP2024_BOOK.pdf"}
     ],
     edges: [
     // Every corridor with >= 100 documented victim case records, 2002-2024 (76 corridors).
@@ -1808,15 +1829,16 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
     desc: "Illegal wildlife trade — ivory, rhino horn, pangolin scales and more, moved from source (poaching) countries through transit hubs to demand markets, overwhelmingly China and Vietnam.",
     color: "#5fae5f", dotColor:"#d6f0c4",
     legend: "Each arc is a major wildlife-trafficking route; dots flow from source toward the demand market.",
-    note: "Illustrative routes from the UNODC World Wildlife Crime Report and CITES seizure data. Vietnam, Malaysia, UAE and Singapore act as transit hubs. Magnitudes are relative.",
+    note: "Routes are direction-indicative, anchored to official poaching counts and seizure data — not total flow. Most China-specific corridor tonnages aren't published (destination attributed, not quantified). Vietnam, Malaysia, UAE and Singapore act as transit hubs; Nigeria's pangolin route has been disrupted since ~2022. Magnitudes are relative.",
     sources: [
-      {label:"UNODC — World Wildlife Crime Report", url:"https://www.unodc.org/unodc/en/data-and-analysis/wildlife.html"},
-      {label:"CITES — trade & seizure data", url:"https://cites.org/"}
+      {label:"South Africa DFFE / SANParks — rhino poaching", url:"https://www.sanparks.org/"},
+      {label:"EIA — Out of Africa (pangolin/ivory)", url:"https://reports.eia-international.org/out-of-africa/"},
+      {label:"UNODC — World Wildlife Crime Report 2024", url:"https://www.unodc.org/documents/data-and-analysis/wildlife/2024/Wildlife2024_Final.pdf"}
     ],
     edges: [
-      {from:"KEN",to:"CHN",w:2},{from:"TZA",to:"CHN",w:2},{from:"ZAF",to:"VNM",w:2.5},
+      {from:"KEN",to:"CHN",w:2},{from:"TZA",to:"CHN",amt:"~45 t ivory since 2009",w:2},{from:"ZAF",to:"VNM",amt:"352 rhinos poached in ZA · 2025",w:2.5},
       {from:"MOZ",to:"VNM",w:1.5},{from:"COD",to:"CHN",w:1.5},{from:"CMR",to:"VNM",w:1.5},
-      {from:"AGO",to:"VNM",w:1.5},{from:"NGA",to:"CHN",w:2},{from:"NGA",to:"VNM",w:2},
+      {from:"AGO",to:"VNM",w:1.5},{from:"NGA",to:"CHN",amt:"754,234 m³ rosewood · 2017",w:2},{from:"NGA",to:"VNM",amt:"167 t pangolin scales · 2015–2020",w:2},
       {from:"UGA",to:"CHN",w:1},{from:"TGO",to:"CHN",w:1},{from:"MMR",to:"CHN",w:2},
       {from:"LAO",to:"CHN",w:1.5},{from:"IDN",to:"CHN",w:1.5},{from:"MYS",to:"CHN",w:1.5},
       {from:"THA",to:"CHN",w:1},{from:"VNM",to:"CHN",w:2.5},{from:"ARE",to:"CHN",w:1},
@@ -1827,15 +1849,15 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
   counterfeit: {
     label: "Counterfeit goods trade",
     group: "Illicit flows",
-    unit: "% share of seizures where published; muted grey = no volume split published",
+    unit: "% share of seizures or US$ seized (MSRP) where published; muted grey = no published % split",
     desc: "Where seized counterfeit and pirated goods are documented coming from, plus known transit hubs and routes toward major consumer markets.",
     color: "#d9a441", dotColor:"#f5e6b0",
     legend: "Arcs sized by % share of seizures where a real figure exists (China/T\u00fcrkiye/UAE/Hong Kong \u2192 EU). Muted grey arcs are corridors or transit hubs backed only by a combined/group figure or no published split at all \u2014 hover for exactly what's known.",
     note: "Global counterfeit trade is estimated at $467B, 2.3% of world trade (OECD/EUIPO 2025 report, 2021 data) \u2014 built from customs seizure data, an enforcement proxy rather than a direct measure, so results are biased by which countries enforce hardest and inspect what. Provenance is the last shipping/customs point recorded, not necessarily where goods were made \u2014 Hong Kong's figures are largely transshipped Chinese production. Data vintages differ by corridor since each comes from a different report: EU seizures 2024, US CBP FY2024, transit-hub routes ~2017. Two sectors have especially concentrated, differently-dated origin data not shown as arcs here: pharmaceuticals (India ~53%, China ~30% of seized value, 2014-16) and perfume/cosmetics (China ~78%, 2017-19).",
     sources: [
       {label:"OECD/EUIPO \u2014 Mapping Global Trade in Fakes 2025", url:"https://www.oecd.org/en/publications/mapping-global-trade-in-fakes-2025_94d3b29f-en.html"},
-      {label:"European Commission/EUIPO \u2014 EU Enforcement of IPR 2024", url:"https://taxation-customs.ec.europa.eu/news/european-union-detains-112-million-counterfeit-items-worth-eu38-billion-2024-2025-10-01_en"},
-      {label:"U.S. CBP \u2014 IPR Seizure Statistics FY2024", url:"https://www.cbp.gov/sites/default/files/2025-01/IntellectualPropertyRightsSeizureStatisticsFiscalYear2024%20FINAL.pdf"}
+      {label:"EUIPO \u2014 EU IPR enforcement results 2024", url:"https://www.euipo.europa.eu/en/publications/eu-enforcement-of-intellectual-property-rights-results-2024"},
+      {label:"U.S. CBP \u2014 IPR Seizure Statistics FY2024", url:"https://www.cbp.gov/sites/default/files/2025-01/intellectualpropertyrightsseizurestatisticsfiscalyear2024_pbrb_approved_with_publication_number_508.pdf"}
     ],
     edges: [
       // Real % shares of seizures/detentions -- exact figures + caveats live in FLOW_MAG.counterfeit.
@@ -1845,8 +1867,8 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
       {from:"ARE",to:"EU",w:5},
       // Group-share / transit-only: no clean bilateral split published, so these render thin and
       // muted rather than implying a precision the source doesn't give. See FLOW_MAG for caveats.
-      {from:"CHN",to:"USA",w:6,c:"#8a95a8"},
-      {from:"HKG",to:"USA",w:6,c:"#8a95a8"},
+      {from:"CHN",to:"USA",amt:"$4.15B · seized MSRP (CBP) · FY2024",w:6,c:"#8a95a8"},
+      {from:"HKG",to:"USA",amt:"$872M · seized MSRP (CBP) · FY2024",w:6,c:"#8a95a8"},
       {from:"CHN",to:"HKG",w:3,c:"#8a95a8"},
       {from:"CHN",to:"ARE",w:3,c:"#8a95a8"},
       {from:"CHN",to:"SGP",w:3,c:"#8a95a8"},
@@ -1861,21 +1883,22 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
     desc: "Emigration of doctors and nurses from their training country to wealthier destinations — a major strain on health systems in origin countries.",
     color: "#5fd0c0", dotColor:"#d6fff5",
     legend: "Each arc is a major health-worker migration corridor; dots flow from the origin (training) country toward the destination.",
-    note: "Illustrative corridors based on OECD and WHO health-workforce migration data; magnitudes are relative, not absolute counts. (Health-flow layer — more, e.g. vaccine/aid flows, can be added the same way.)",
+    note: "Labeled corridors carry measured stocks — UK nurse counts from the NMC register (Mar 2024), US counts by country of birth (ACS); unlabeled corridors are relative weights (OECD-DIOC 2010 rates), not head-counts.",
     sources: [
-      {label:"WHO — Global strategy on human resources for health", url:"https://www.who.int/publications/i/item/9789241511131"},
-      {label:"OECD — International Migration of Health Workers", url:"https://www.oecd.org/en/topics/health-workforce.html"}
+      {label:"UK NMC — nursing & midwifery register data", url:"https://www.nmc.org.uk/about-us/reports-and-accounts/registration-statistics/"},
+      {label:"American Immigration Council — immigrant healthcare workers", url:"https://www.americanimmigrationcouncil.org/report/immigrant-healthcare-workers-countries-of-birth/"},
+      {label:"WHO — Health Workforce Support & Safeguards List 2023", url:"https://www.who.int/publications/i/item/9789240069787"}
     ],
     edges: [
-      {from:"PHL",to:"USA",w:6},{from:"IND",to:"USA",w:5},{from:"IND",to:"GBR",w:4},
+      {from:"PHL",to:"USA",amt:"171,200 Filipino-born nurses in US · 2024",w:6},{from:"IND",to:"USA",amt:"62,800 Indian-born physicians in US · 2024",w:5},{from:"IND",to:"GBR",amt:"62,413 nurses · NMC register · 2024",w:4},
       {from:"EGY",to:"SAU",w:4},{from:"PHL",to:"SAU",w:3},{from:"IND",to:"ARE",w:3},
-      {from:"NGA",to:"GBR",w:3},{from:"NGA",to:"USA",w:2},{from:"PHL",to:"GBR",w:2},
-      {from:"PAK",to:"GBR",w:2},{from:"ZWE",to:"GBR",w:2},{from:"ZAF",to:"GBR",w:2},
+      {from:"NGA",to:"GBR",amt:"13,656 nurses · NMC register · 2024",w:3},{from:"NGA",to:"USA",w:2},{from:"PHL",to:"GBR",amt:"49,092 nurses · NMC register · 2024",w:2},
+      {from:"PAK",to:"GBR",w:2},{from:"ZWE",to:"GBR",amt:"4,794 nurses · NMC register · 2024",w:2},{from:"ZAF",to:"GBR",w:2},
       {from:"SDN",to:"SAU",w:2},{from:"MEX",to:"USA",w:2},{from:"DZA",to:"FRA",w:2},
-      {from:"MAR",to:"FRA",w:2},{from:"ROU",to:"DEU",w:2},{from:"IND",to:"AUS",w:2},
-      {from:"PHL",to:"CAN",w:2},{from:"GHA",to:"GBR",w:1},{from:"KEN",to:"GBR",w:1},
+      {from:"MAR",to:"FRA",w:2},{from:"ROU",to:"DEU",amt:"4,285 Romanian doctors in Germany · 2024",w:2},{from:"IND",to:"AUS",w:2},
+      {from:"PHL",to:"CAN",w:2},{from:"GHA",to:"GBR",amt:"7,979 nurses · NMC register · 2024",w:1},{from:"KEN",to:"GBR",w:1},
       {from:"LKA",to:"GBR",w:1},{from:"ZMB",to:"GBR",w:1},{from:"MWI",to:"GBR",w:1},
-      {from:"CUB",to:"BRA",w:1},{from:"POL",to:"GBR",w:1},{from:"GHA",to:"USA",w:1},
+      {from:"CUB",to:"BRA",amt:"11,400 doctors · Mais Médicos peak · 2015",w:1},{from:"POL",to:"GBR",w:1},{from:"GHA",to:"USA",w:1},
       {from:"IRN",to:"USA",w:1}
     ]
   },
@@ -1887,13 +1910,13 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
     desc: "Money sent home by migrant workers — largest country-to-country remittance corridors. Arrow points to the receiving country.",
     color: "#7ee0b8", dotColor:"#d6fff0",
     legend: "Each arc is a major remittance corridor; thickness ≈ annual US$ sent. Arrow / dots point to the receiving country.",
-    note: "Top corridors estimated from the World Bank Bilateral Remittance Matrix (2023) and KNOMAD. Figures are approximate and rounded; many smaller corridors are omitted.",
+    note: "Top corridors from the World Bank–KNOMAD Bilateral Remittance Matrix, which is modeled (migrant stocks × incomes) rather than measured, is 2021 vintage, and is no longer updated (the KNOMAD portal went offline in 2024). USA→Mexico is the exception: $62.5B is measured by Banco de México for 2024 (96.6% of Mexico’s $64.7B total). USA→India is drawn at this map’s legacy weight (~$32B), but the 2021 matrix puts the US share nearer $6B and attributes most of India’s $129B inflow to the Gulf — treat that corridor’s size as unresolved. Figures are approximate and rounded; many smaller corridors are omitted.",
     sources: [
-      {label:"World Bank — Bilateral Remittance Matrix / KNOMAD", url:"https://www.knomad.org/data/remittances"},
-      {label:"World Bank — Migration & Development Brief 39 (2023)", url:"https://www.worldbank.org/en/news/press-release/2023/12/18/remittance-flows-grow-2023-slower-pace-migration-development-brief"}
+      {label:"World Bank–KNOMAD Bilateral Remittance Matrix (via MPI)", url:"https://www.migrationpolicy.org/programs/data-hub/charts/bilateral-remittance-flows"},
+      {label:"Banco de México — remittances", url:"https://www.banxico.org.mx/"}
     ],
     edges: [
-      {from:"USA",to:"MEX",w:65},{from:"USA",to:"IND",w:32},{from:"ARE",to:"IND",w:18},
+      {from:"USA",to:"MEX",amt:"$62.5B · 96.6% of Mexico’s total · 2024",w:65},{from:"USA",to:"IND",w:32},{from:"ARE",to:"IND",w:18},
       {from:"USA",to:"GTM",w:18},{from:"USA",to:"CHN",w:18},{from:"USA",to:"PHL",w:14},
       {from:"SAU",to:"IND",w:12},{from:"ARE",to:"PAK",w:10},{from:"USA",to:"VNM",w:10},
       {from:"USA",to:"DOM",w:9},{from:"USA",to:"COL",w:9},{from:"RUS",to:"UZB",w:8},
@@ -1915,17 +1938,17 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
     desc: "Government-to-government lending: who owes whom. The teal end of each line is the creditor; the orange end is the debtor. Dots travel creditor → debtor.",
     color: "#5bd6c0", dotColor:"#e0603a",
     legend: "Each line is a major bilateral lending relationship. Teal end = creditor (lender); orange end = debtor (borrower). Dots move from creditor toward debtor.",
-    note: "Approximate bilateral debt-stock figures from World Bank International Debt Statistics and AidData. Bilateral (government-to-government) debt is only part of total external debt — much is owed to bondholders and multilaterals (IMF/World Bank). Chinese lending is estimated and often under-reported.",
+    note: "Approximate bilateral debt-stock figures on two different bases: World Bank International Debt Statistics (public and publicly guaranteed debt, debtor-reported) and AidData (broader, including SOEs and swap lines — systematically larger, since roughly 70% of Chinese lending is non-sovereign). China → Argentina is mostly a PBOC central-bank currency swap, not project loans. Bilateral (government-to-government) debt is only part of total external debt — much is owed to bondholders and multilaterals (IMF/World Bank).",
     cats: [
       {label:"Creditor (lender)", color:"#5bd6c0"},
       {label:"Debtor (borrower)", color:"#e0603a"}
     ],
     sources: [
       {label:"World Bank — International Debt Statistics", url:"https://www.worldbank.org/en/programs/debt-statistics/ids"},
-      {label:"AidData — Chinese overseas development finance", url:"https://www.aiddata.org/china-official-finance"}
+      {label:"AidData — Global Chinese Development Finance v3.0", url:"https://www.aiddata.org/data/aiddatas-global-chinese-development-finance-dataset-version-3-0"}
     ],
     edges: [
-      {from:"CHN",to:"PAK",w:30},{from:"CHN",to:"AGO",w:18},{from:"CHN",to:"ARG",w:18},
+      {from:"CHN",to:"PAK",amt:"$22.6B · PPG stock (IDS) · 2023",w:30},{from:"CHN",to:"AGO",amt:"$17.9B · PPG stock (IDS) · 2023",w:18},{from:"CHN",to:"ARG",amt:"~$18B · PBOC currency swap · 2023",w:18},
       {from:"CHN",to:"LAO",w:12},{from:"CHN",to:"VEN",w:10},{from:"CHN",to:"EGY",w:8},
       {from:"CHN",to:"KEN",w:8},{from:"CHN",to:"IDN",w:8},{from:"CHN",to:"TKM",w:8},
       {from:"CHN",to:"ETH",w:7},{from:"CHN",to:"LKA",w:7},{from:"CHN",to:"ZMB",w:6},
@@ -2037,21 +2060,22 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
     desc: "Largest bilateral goods-trade relationships by annual value — the spine of the global economy.",
     color: "#f2c14e",
     legend: "Each arc is a major bilateral trade relationship; thickness ≈ annual goods value.",
-    note: "Trade statistics come from national customs authorities self-reporting to UN Comtrade, and reporting health varies by country (self_reported / self_reported_stale / mirror_only, per Comtrade's own coverage metadata). Most economies here report on a current schedule. Russia is the one exception in this layer — its own last self-report was 2021 — so the Russia\u2192China figure shown is sourced to Chinese customs data, not Russian self-reporting, which is standard practice (a \u201cmirror\u201d statistic) but worth knowing. A number of significant economies not shown here — Venezuela, Syria, Iraq, North Korea, Somalia among them — don't self-report to Comtrade at all and are only available via partner-reported mirrors, which is part of why they're absent from a \u2018top bilateral flows\u2019 view built on directly reported figures.",
+    note: "US-corridor figures are US Census (2024, firm); other corridors are UN Comtrade via Trading Economics, with China-partner values on a China-reported \u201cmirror\u201d basis (mirror vs exporter-reported figures can differ 5\u201315%). DEU\u2192USA, JPN\u2192USA, ITA\u2192DEU and NLD\u2192DEU show 2025 (their latest full year), and NLD\u2192DEU is inflated by the Rotterdam re-export effect. Some significant economies \u2014 Venezuela, Syria, Iraq, North Korea, Somalia \u2014 don't self-report to Comtrade at all and are only visible via partner mirrors, which is why they're absent from a \u2018top bilateral flows\u2019 view.",
     sources: [
-      {label:"UN Comtrade — International Trade Statistics", url:"https://comtradeplus.un.org/"},
-      {label:"WTO — World Trade Statistical Review", url:"https://www.wto.org/english/res_e/statis_e/statis_e.htm"}
+      {label:"US Census Bureau — Foreign Trade country balances", url:"https://www.census.gov/foreign-trade/balance/"},
+      {label:"UN Comtrade (via Trading Economics)", url:"https://tradingeconomics.com/china/imports"},
+      {label:"Australian DFAT — China country brief", url:"https://www.dfat.gov.au/geo/china/china-country-brief"}
     ],
     edges: [
-      {from:"CHN",to:"USA",w:5.0},{from:"CAN",to:"USA",w:4.3},{from:"MEX",to:"USA",w:4.5},
-      {from:"CHN",to:"DEU",w:1.6},{from:"CHN",to:"JPN",w:1.7},{from:"DEU",to:"USA",w:1.6},
-      {from:"JPN",to:"USA",w:1.5},{from:"CHN",to:"KOR",w:1.5},{from:"DEU",to:"FRA",w:1.2},
-      {from:"CHN",to:"VNM",w:1.4},{from:"USA",to:"CHN",w:1.5},{from:"DEU",to:"CHN",w:1.1},
-      {from:"KOR",to:"CHN",w:1.4},{from:"RUS",to:"CHN",w:1.3},{from:"CHN",to:"GBR",w:1.0},
-      {from:"NLD",to:"DEU",w:1.1},{from:"CHN",to:"IND",w:1.2},{from:"SAU",to:"CHN",w:0.9},
-      {from:"AUS",to:"CHN",w:1.3},{from:"BRA",to:"CHN",w:1.1},{from:"CHN",to:"AUS",w:0.8},
-      {from:"DEU",to:"GBR",w:0.9},{from:"FRA",to:"DEU",w:1.0},{from:"ITA",to:"DEU",w:0.9},
-      {from:"CHN",to:"BRA",w:0.7},{from:"USA",to:"CAN",w:3.0},{from:"USA",to:"MEX",w:3.2}
+      {from:"CHN",to:"USA",amt:"$438.7B · goods · 2024",w:5.0},{from:"CAN",to:"USA",amt:"$411.8B · goods · 2024",w:4.3},{from:"MEX",to:"USA",amt:"$503.1B · goods · 2024",w:4.5},
+      {from:"CHN",to:"DEU",amt:"$107.1B · goods · 2024",w:1.6},{from:"CHN",to:"JPN",amt:"$152.0B · goods · 2024",w:1.7},{from:"DEU",to:"USA",amt:"$166.3B · goods · 2025",w:1.6},
+      {from:"JPN",to:"USA",amt:"$131.7B · goods · 2025",w:1.5},{from:"CHN",to:"KOR",amt:"$146.2B · goods · 2024",w:1.5},{from:"DEU",to:"FRA",amt:"$120.5B · goods · 2024",w:1.2},
+      {from:"CHN",to:"VNM",amt:"$161.9B · goods · 2024",w:1.4},{from:"USA",to:"CHN",amt:"$143.2B · goods · 2024",w:1.5},{from:"DEU",to:"CHN",amt:"$94.8B · goods · 2024",w:1.1},
+      {from:"KOR",to:"CHN",amt:"$181.5B · goods · 2024",w:1.4},{from:"RUS",to:"CHN",amt:"$129.9B · goods · 2024",w:1.3},{from:"CHN",to:"GBR",amt:"$78.9B · goods · 2024",w:1.0},
+      {from:"NLD",to:"DEU",amt:"$163.7B · goods · 2025",w:1.1},{from:"CHN",to:"IND",amt:"$120.5B · goods · 2024",w:1.2},{from:"SAU",to:"CHN",amt:"$57.5B · goods · 2024",w:0.9},
+      {from:"AUS",to:"CHN",amt:"$140.8B · goods · 2024",w:1.3},{from:"BRA",to:"CHN",amt:"$116.1B · goods · 2024",w:1.1},{from:"CHN",to:"AUS",amt:"$70.8B · goods · 2024",w:0.8},
+      {from:"DEU",to:"GBR",amt:"$84.7B · goods · 2024",w:0.9},{from:"FRA",to:"DEU",amt:"$85.3B · goods · 2024",w:1.0},{from:"ITA",to:"DEU",amt:"$81.6B · goods · 2025",w:0.9},
+      {from:"CHN",to:"BRA",amt:"$72.1B · goods · 2024",w:0.7},{from:"USA",to:"CAN",amt:"$350.6B · goods · 2024",w:3.0},{from:"USA",to:"MEX",amt:"$334.5B · goods · 2024",w:3.2}
     ]
   },
   cables: {
@@ -2061,14 +2085,18 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
     desc: "Backbone submarine fibre-optic cables — the physical internet between continents.",
     color: "#56c5d0",
     legend: "Each arc is a major intercontinental submarine cable route carrying internet traffic.",
+    note: "Routes are illustrative corridors from TeleGeography's cable map; capacity figures where shown are the design capacity of a single named flagship cable (Dunant, MAREA, 2Africa), not whole-corridor totals. Submarine cables carry >99% of intercontinental data traffic, and ~90% of Europe–Asia capacity funnels through Egypt's Red Sea crossing (~14–16 systems land there). Trans-Pacific corridors are weight-only — no per-cable figures compiled yet.",
     sources: [
-      {label:"TeleGeography — Submarine Cable Map", url:"https://www.submarinecablemap.com/"}
+      {label:"TeleGeography — Submarine Cable Map", url:"https://www.submarinecablemap.com/"},
+      {label:"TeleGeography — Submarine cable FAQs", url:"https://www2.telegeography.com/submarine-cable-faqs-frequently-asked-questions"},
+      {label:"TeleGeography — Red Sea subsea crossroads", url:"https://blog.telegeography.com/the-red-sea-a-key-subsea-cable-crossroads-under-siege"},
+      {label:"Google Cloud — Dunant subsea cable (250 Tbps)", url:"https://cloud.google.com/blog/products/infrastructure/googles-dunant-subsea-cable-is-now-ready-for-service"}
     ],
     edges: [
-      {from:"USA",to:"GBR",w:1},{from:"USA",to:"FRA",w:1},{from:"USA",to:"ESP",w:1},
+      {from:"USA",to:"GBR",w:1},{from:"USA",to:"FRA",amt:"250 Tbps · Dunant design capacity · 2021",w:1},{from:"USA",to:"ESP",amt:"200 Tbps · MAREA design capacity · 2018",w:1},
       {from:"USA",to:"BRA",w:1},{from:"USA",to:"JPN",w:1},{from:"GBR",to:"IND",w:1},
-      {from:"FRA",to:"SGP",w:1},{from:"EGY",to:"IND",w:1},{from:"ESP",to:"ARG",w:1},
-      {from:"JPN",to:"SGP",w:1},{from:"AUS",to:"USA",w:1},{from:"ZAF",to:"GBR",w:1},
+      {from:"FRA",to:"SGP",w:1},{from:"EGY",to:"IND",amt:"90% of Europe–Asia capacity · Red Sea crossing · 2023",w:1},{from:"ESP",to:"ARG",w:1},
+      {from:"JPN",to:"SGP",w:1},{from:"AUS",to:"USA",w:1},{from:"ZAF",to:"GBR",amt:"up to 180 Tbps · 2Africa · 2025",w:1},
       {from:"SGP",to:"IND",w:1},{from:"KOR",to:"USA",w:1},{from:"PRT",to:"BRA",w:1},
       {from:"ITA",to:"EGY",w:1},{from:"ARE",to:"IND",w:1},{from:"NGA",to:"PRT",w:1}
     ]
@@ -2087,7 +2115,7 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
     desc: "Principal international drug-trafficking corridors, color-coded by substance.",
     color: "#c95f6e", dotColor:"#ffd2d8",
     legend: "Each arc is a documented international trafficking corridor. Color = substance; thickness ≈ relative corridor prominence.",
-    note: "Overview corridors from UNODC & EMCDDA reporting. Routes shift constantly and estimates vary widely by source; this is the macro picture, not a current or exhaustive map.",
+    note: "Afghan opium production collapsed −95% to 333 t in 2023 after the Taliban ban; global cocaine production stands at 3,708 t. Routes are directional — UNODC publishes no bilateral corridor tonnages, so widths are indicative, not measured.",
     cats: [
       {label:"Cocaine",        color:"#6ea8fe"},
       {label:"Heroin / opiates",color:"#d4793a"},
@@ -2095,8 +2123,9 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
       {label:"Cannabis / resin", color:"#2a9d6f"}
     ],
     sources: [
-      {label:"UNODC — World Drug Report", url:"https://www.unodc.org/unodc/en/data-and-analysis/world-drug-report-2025.html"},
-      {label:"EMCDDA — European Drug Report", url:"https://www.euda.europa.eu/publications/european-drug-report_en"}
+      {label:"UNODC — World Drug Report 2025", url:"https://www.unodc.org/documents/data-and-analysis/WDR_2025/WDR25_B1_Key_findings.pdf"},
+      {label:"EUDA — European Drug Report 2025", url:"https://www.euda.europa.eu/publications/european-drug-report/2025_en"},
+      {label:"UNODC — Afghanistan Opium Survey 2023", url:"https://www.unodc.org/documents/crop-monitoring/Afghanistan/Afghanistan_opium_survey_2023.pdf"}
     ],
     edges: [
       // Cocaine — Andean production to North America & Europe (incl. West Africa transit)
@@ -2127,13 +2156,14 @@ aid:{"label":"Foreign aid flows","group":"Trade & resources","unit":"US$ million
     desc: "Documented illicit small-arms and weapons trafficking corridors.",
     color: "#d4b13a", dotColor:"#fff0b8",
     legend: "Each arc is a documented illicit arms-flow corridor; thickness ≈ relative prominence.",
-    note: "Overview corridors from Small Arms Survey & UNODC firearms reporting. Illicit arms flows are diffuse and hard to measure; this shows the most-cited corridors, not a complete picture.",
+    note: "Direction-indicative corridors — arcs show documented flow directions, not measured volumes; illicit arms flows are diffuse and no comparable per-corridor counts exist, so every arc except USA→MEX stays qualitative. Scale anchors: ~1 billion firearms worldwide (Small Arms Survey 2017); ~70% of Mexico-recovered, traced guns are US-sourced and Canada is the #2 foreign recovery country for US-sourced crime guns (GAO/ATF); ~$7.2B of US equipment was left in Afghanistan in 2021, and the dominant Afghan flow now runs outward to the region. State-to-state major-weapon transfers are measured in SIPRI's TIV — a volume index, NOT dollars and NOT gun counts (global context: USA = 43% of all arms exports, 2024) — which is never mixed with the firearms figures here; most drawn arcs are illicit small arms, invisible to SIPRI.",
     sources: [
-      {label:"Small Arms Survey", url:"https://www.smallarmssurvey.org/"},
-      {label:"UNODC — Global Study on Firearms Trafficking", url:"https://www.unodc.org/unodc/en/firearms-protocol/firearms-study.html"}
+      {label:"SIPRI — Trends in International Arms Transfers 2024", url:"https://www.sipri.org/sites/default/files/2025-03/fs_2503_at_2024_0.pdf"},
+      {label:"US GAO-21-322 — firearms trafficking to Mexico", url:"https://www.gao.gov/assets/gao-21-322.pdf"},
+      {label:"Small Arms Survey — global firearms holdings", url:"https://www.smallarmssurvey.org/"}
     ],
     edges: [
-      {from:"USA",to:"MEX",w:3.6},          // the "iron river"
+      {from:"USA",to:"MEX",amt:"~200,000 firearms/yr · Mexican-govt estimate · 2021",w:3.6},          // the "iron river"
       {from:"USA",to:"CAN",w:1.4},
       {from:"USA",to:"BRA",w:1.3},
       {from:"DEU",to:"LBY",w:1.3},          // diverted/legacy stock to conflict zones
