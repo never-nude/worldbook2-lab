@@ -532,7 +532,7 @@ map.on("error", function(e){ console.warn("[worldbook] MapLibre error:", e && e.
 // running the JS they loaded (a page never picks up new code without a reload), and this
 // tag is how we tell "old build still open" apart from "bug survived the fix" - check
 // `WB_BUILD` in the console or the boot line below.
-window.WB_BUILD="2026-07-03.3 spin-geo";
+window.WB_BUILD="2026-07-03.4 hide-antarctica-ring";
 console.info("[worldbook] build", window.WB_BUILD);
 
 /* ── Countries tile-dropout watchdog ──────────────────────────────────────────
@@ -732,6 +732,7 @@ function _atlasBoot(){ if(_atlasBooted) return; _atlasBooted=true; try{
     paint:{"fill-color":colorExpr("religion"),"fill-opacity":1,
       "fill-color-transition":{duration:500,delay:0},"fill-opacity-transition":{duration:400}}});
   map.addLayer({id:"borders",type:"line",source:"world-lines",
+    filter:["!=",["get","iso3"],"ATA"],   // Antarctica's coastline reads as an unwanted ring around the south pole; drop its outline (fill stays)
     paint:{"line-color":"#05080f","line-width":1.3,"line-opacity-transition":{duration:400}}});
   // Countries view rebuilt from scratch 2026-07-02 (the old glow bundle is gone): the fill
   // uses the SAME color path as every data layer (colorExpr in setLayer - no special case),
@@ -753,6 +754,7 @@ function _atlasBoot(){ if(_atlasBooted) return; _atlasBooted=true; try{
   //    Stops at every integer zoom: the clamp scales with 2^z, and linear interpolation
   //    between sparse stops overshoots the true exponential in the gaps.
   map.addLayer({id:"countries-edge-soft",type:"line",source:"world-lines",
+    filter:["!=",["get","iso3"],"ATA"],   // exclude Antarctica so its coastline glow doesn't ring the south pole
     layout:{visibility:"none","line-join":"round","line-cap":"round"},
     paint:{"line-color":["get","color_countries_e1"],
       "line-width":["interpolate",["linear"],["zoom"],
@@ -766,6 +768,7 @@ function _atlasBoot(){ if(_atlasBooted) return; _atlasBooted=true; try{
         3,["min",8,["*",["get","rdeg"],13.7]],4,["min",11.5,["*",["get","rdeg"],27.3]],5,["min",15,["*",["get","rdeg"],54.6]]],
       "line-opacity":0.55}}, "borders");
   map.addLayer({id:"countries-edge-tight",type:"line",source:"world-lines",
+    filter:["!=",["get","iso3"],"ATA"],   // exclude Antarctica so its coastline glow doesn't ring the south pole
     layout:{visibility:"none","line-join":"round","line-cap":"round"},
     paint:{"line-color":["get","color_countries_e2"],
       "line-width":["interpolate",["linear"],["zoom"],
