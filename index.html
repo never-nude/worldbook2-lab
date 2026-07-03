@@ -532,7 +532,7 @@ map.on("error", function(e){ console.warn("[worldbook] MapLibre error:", e && e.
 // running the JS they loaded (a page never picks up new code without a reload), and this
 // tag is how we tell "old build still open" apart from "bug survived the fix" - check
 // `WB_BUILD` in the console or the boot line below.
-window.WB_BUILD="2026-07-03.1 hk-into-china";
+window.WB_BUILD="2026-07-03.2 migtime-tooltip";
 console.info("[worldbook] build", window.WB_BUILD);
 
 /* ── Countries tile-dropout watchdog ──────────────────────────────────────────
@@ -2571,6 +2571,21 @@ function flowTip(key,p){
     const q=FLOW_QTY[key]; valHTML=escapeHTML(fmtQty(+p.wv*q.scale,q.kind))+(q.est?" (est.)":"");
   }
   else { valHTML=`<span style="opacity:.8">major corridor \u00b7 relative prominence (no hard per-corridor figure)</span>`; }
+  if(key==="migtime" && typeof MIG_DECCUR!=="undefined" && MIG_DECCUR!=null){
+    // Each keyframe is a decade, so the figure is a whole-decade total, not the slider year.
+    const d0=MIG_DECCUR, d1=d0+9, kf=(typeof MIG_BY!=="undefined"&&MIG_BY[d0])||null;
+    const decLbl=(kf&&kf.label)||(d0+"s");
+    const baseAmt=p.amt?escapeHTML(String(p.amt)):(valHTML||"");
+    valHTML=`${baseAmt} <span style="opacity:.6;font-weight:400">\u00b7 during the ${escapeHTML(decLbl)} (${d0}\u2013${d1})</span>`;
+    const cor=kf&&kf.corridors?kf.corridors.find(c=>c.from===from&&c.to===to):null;
+    if(cor){
+      const kindMap=(typeof MIG_KIND_LBL!=="undefined")?Object.fromEntries(MIG_KIND_LBL):{};
+      const bits=[];
+      if(cor.kind) bits.push(kindMap[cor.kind]||cor.kind);
+      if(cor.confidence) bits.push(cor.confidence+" confidence");
+      if(bits.length) valHTML+=`<div style="font-weight:400;opacity:.7;margin-top:2px">${escapeHTML(bits.join(" \u00b7 "))}</div>`;
+    }
+  }
   if(!srcLab&&pv&&pv.primarySource) srcLab=pv.primarySource.org||"";
   if(!srcLab&&F.sources&&F.sources[0]) srcLab=String(F.sources[0].label||"").split(" \u2014 ")[0];
   let h=`<div class="pop-name">${escapeHTML(title)}</div>`;
