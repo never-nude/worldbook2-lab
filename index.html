@@ -240,8 +240,8 @@
   <button id="tbSet" class="tbtn" title="Jump to any date (now – year 10000)">Date…</button>
   <button id="tbSun" class="tbtn" title="Face the Sun — orient the globe to where the Sun is overhead at this date/time">☀</button>
   <button id="tbHome" class="tbtn" title="Recenter / reset the view (north up)">⌖</button>
-  <input type="range" id="tbSpeed" min="0" max="1" step="0.005" value="0.81879" title="Time speed — left = real-time, right = 5 days/min">
-  <span id="tbSpeedLbl">1.4k× speed</span>
+  <input type="range" id="tbSpeed" min="0" max="1" step="0.005" value="0.74076" title="Time speed — left = real-time, right = 5 days/min">
+  <span id="tbSpeedLbl">720× speed</span>
   <span id="tbDate"></span>
 </div>
 <div id="datepop">
@@ -532,7 +532,7 @@ map.on("error", function(e){ console.warn("[worldbook] MapLibre error:", e && e.
 // running the JS they loaded (a page never picks up new code without a reload), and this
 // tag is how we tell "old build still open" apart from "bug survived the fix" - check
 // `WB_BUILD` in the console or the boot line below.
-window.WB_BUILD="2026-07-03.2 migtime-tooltip";
+window.WB_BUILD="2026-07-03.3 spin-geo";
 console.info("[worldbook] build", window.WB_BUILD);
 
 /* ── Countries tile-dropout watchdog ──────────────────────────────────────────
@@ -1065,12 +1065,13 @@ map.addLayer(countryLabels3D);
 
   wireInteractions();
   buildLayerUI();
-  simEpoch=Date.now(); simDays=0; paused=false; simSpeed=1; solarDate=new Date();   // default = 24 sim-hours per real minute (1 sim-day/min); rate and date both remain fully manual after this
+  simEpoch=Date.now(); simDays=0; paused=false; simSpeed=0.5; solarDate=new Date();   // default = 12 sim-hours per real minute (0.5 sim-day/min → one full globe spin per 2 real minutes); rate and date both remain fully manual after this
   setLayer("countries");   // default opening layer = Countries reference map (static choropleth — fast, reliable first paint)
   wireTimeBar(); try{ initGuide(); }catch(e){} try{ initHint(); }catch(e){} updateTimeLabel();
   let _revealed=false;
 /* WB_SMOOTH_REVEAL_V1 */
   const _reveal=()=>{ if(_revealed) return; _revealed=true;
+    try{ if(_wbGeo){ map.jumpTo({center:[_wbGeo.lng,_wbGeo.lat], zoom:1.6, bearing:0, pitch:0}); _wbGeoCentered=true; } }catch(e){}   // open already centered on the visitor's IP location (the ping epicenter), no fly-in
     document.getElementById("loading").style.display="none";
     startSpin();
     try{ _wbDropoutBootT=Date.now(); }catch(e){}   // boot window starts at reveal, not script eval
@@ -1174,7 +1175,7 @@ map.moveLayer("country-labels");   // fix: MapLibre resolves cross-layer symbol 
   }catch(_e){ console.error("Atlas init error:",_e); document.getElementById("loading").style.display="none"; }
 }
 if(map.isStyleLoaded()) _atlasBoot(); else map.on("load", _atlasBoot);
-var _wbGeo=null, _wbGeoMapReady=false, _wbGeoApplied=false, _wbGeoRevealReady=false;
+var _wbGeo=null, _wbGeoMapReady=false, _wbGeoApplied=false, _wbGeoRevealReady=false, _wbGeoCentered=false;
 function _wbApplyGeo(){
   // _wbGeoRevealReady gates the ping until the loading overlay is gone - map "load" and
   // the IP lookup both resolve while the boot screen still covers the map, and a ping
@@ -1194,7 +1195,7 @@ function _wbApplyGeo(){
         +'<div class="wb-geo-pop-s">Located from your IP address - city/region accuracy, not exact. VPNs and proxies will show their own location instead of yours.</div>'
       ))
       .addTo(map);
-    map.flyTo({center:[_wbGeo.lng,_wbGeo.lat], zoom:1.6, bearing:0, pitch:0, duration:2200});
+    if(!_wbGeoCentered){ map.jumpTo({center:[_wbGeo.lng,_wbGeo.lat], zoom:1.6, bearing:0, pitch:0}); }   // reveal already centered in the usual case; snap only if the IP lookup resolved late
     if(window.console) console.info("[worldbook geo] centered on", _wbGeo.place||(_wbGeo.lat+","+_wbGeo.lng));
     // one ping, then gone: the last ring launches at +0.7s and radiates for 2s, so hold
     // until ~2.9s, fade the core dot, then actually remove the marker entirely.
@@ -1295,8 +1296,8 @@ function wireTimeBar(){
     const pbn=document.getElementById("playBtn"); if(pbn) pbn.textContent=paused?"▶ Resume":"⏸ Pause";
   });
   const nb=document.getElementById("tbNow");
-  if(nb) nb.onclick=()=>{ simEpoch=Date.now(); simDays=0; simLast=0; solarDate=new Date(); simSpeed=1;
-    if(sp) sp.value=0.81879; if(lbl) lbl.textContent="1.4k× speed";
+  if(nb) nb.onclick=()=>{ simEpoch=Date.now(); simDays=0; simLast=0; solarDate=new Date(); simSpeed=0.5;
+    if(sp) sp.value=0.74076; if(lbl) lbl.textContent="720× speed";
     updateTimeLabel(); updateSunShade(); };
   const sunB=document.getElementById("tbSun");
   if(sunB) sunB.onclick=()=>{ const ss=subsolarPoint(solarDate); map.flyTo({center:[((ss.lng+540)%360)-180, ss.lat], zoom:1.6, bearing:0, pitch:0, duration:900}); lastInteract=Date.now()+4000; };
@@ -3487,7 +3488,7 @@ function orbXY(el,E){
 }
 function planetXY(p,T){ const el=elemAt(p,T); let M=((el.L-el.w)%360); if(M>180)M-=360; if(M<-180)M+=360; return orbXY(el,solveKepler(M*DEG,el.e)); }
 
-let solarDate=new Date(), solarRAF=null, TH=null, paused=false, simEpoch=null, simDays=0, simSpeed=1, simLast=0;
+let solarDate=new Date(), solarRAF=null, TH=null, paused=false, simEpoch=null, simDays=0, simSpeed=0.5, simLast=0;
 function initSolar(){
   { const b=document.getElementById("sourcesBtn"); if(b) b.onclick=openSourcesIndex; }
 }
