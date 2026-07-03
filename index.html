@@ -532,7 +532,7 @@ map.on("error", function(e){ console.warn("[worldbook] MapLibre error:", e && e.
 // running the JS they loaded (a page never picks up new code without a reload), and this
 // tag is how we tell "old build still open" apart from "bug survived the fix" - check
 // `WB_BUILD` in the console or the boot line below.
-window.WB_BUILD="2026-07-03.4 hide-antarctica-ring";
+window.WB_BUILD="2026-07-03.5 flow-hide-edges";
 console.info("[worldbook] build", window.WB_BUILD);
 
 /* ── Countries tile-dropout watchdog ──────────────────────────────────────────
@@ -3010,6 +3010,11 @@ function setLayer(key){
     // flow is an OVERLAY mode: keep a base choropleth underneath, draw arcs on top
     const RASTERS={satellite:"sat",topo:"topo"};
     Object.values(RASTERS).forEach(id=>{ if(map.getLayer(id)) map.setLayoutProperty(id,"visibility","none"); });
+    // A flow layer is NOT the Countries reference map: hide its edge-glow + city bundle here, or
+    // they linger over the flow view as bright per-country outlines (this early return skips the
+    // Countries-only visibility block below that would otherwise turn them off).
+    ["countries-edge-soft","countries-edge-tight"].forEach(id=>{ if(map.getLayer(id)) map.setLayoutProperty(id,"visibility","none"); });
+    [1,2,3].forEach(function(tr){ if(map.getLayer("cities-dot-"+tr)) map.setLayoutProperty("cities-dot-"+tr,"visibility","none"); if(map.getLayer("cities-label-"+tr)) map.setLayoutProperty("cities-label-"+tr,"visibility","none"); });
     setFlow(cfg.flowKey);   // setFlow → setFlowBase sets the base choropleth (roles for illicit, popdensity otherwise)
     return;
   }
