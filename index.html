@@ -532,7 +532,7 @@ map.on("error", function(e){ console.warn("[worldbook] MapLibre error:", e && e.
 // running the JS they loaded (a page never picks up new code without a reload), and this
 // tag is how we tell "old build still open" apart from "bug survived the fix" - check
 // `WB_BUILD` in the console or the boot line below.
-window.WB_BUILD="2026-07-03.7 canada-label-manitoba";
+window.WB_BUILD="2026-07-03.8 hide-moon";
 console.info("[worldbook] build", window.WB_BUILD);
 
 /* ── Countries tile-dropout watchdog ──────────────────────────────────────────
@@ -3635,7 +3635,7 @@ function renderSky(){
   // depth, sized exactly to the globe's measured on-screen radius (gpx) and fixed at the view
   // origin. The Moon mesh depth-tests against it like any normal opaque object, so it slides
   // behind Earth's actual silhouette pixel-by-pixel instead of popping on a hard cutoff circle.
-  SKY.luna.visible = true;
+  SKY.luna.visible = false;   // moon hidden for now (Mike, 2026-07-03) — set back to true to restore
   SKY.fr.resetState();   // fix: resyncs Three.js's cached GL state (colorMask among it) with real hardware
   // state before this draw - without it, earthOccluder's colorWrite:false (meant to make it invisible,
   // depth-only) can silently fail to apply, painting a large opaque-ish circle over the globe that blocks
