@@ -532,7 +532,7 @@ map.on("error", function(e){ console.warn("[worldbook] MapLibre error:", e && e.
 // running the JS they loaded (a page never picks up new code without a reload), and this
 // tag is how we tell "old build still open" apart from "bug survived the fix" - check
 // `WB_BUILD` in the console or the boot line below.
-window.WB_BUILD="2026-07-04.1 ireland-gdp";
+window.WB_BUILD="2026-07-05.1 subnat-fallback";
 console.info("[worldbook] build", window.WB_BUILD);
 
 /* ── Countries tile-dropout watchdog ──────────────────────────────────────────
@@ -3378,12 +3378,39 @@ document.getElementById("minP").onclick=()=>{
 
 /* ---------------- Subnational drill-down ---------------- */
 let subPopup;
+// Regional boundaries load from a third-party CDN at click time, and privacy browsers
+// with content blockers (Ecosia's tracker blocker, Brave shields, uBlock lists) can
+// block cdn.jsdelivr.net wholesale - which made the regional button silently do
+// nothing (reported via Reddit, Ecosia, 2026-07). The identical files are also served
+// by raw.githubusercontent.com, which those lists don't block, so a jsdelivr URL is
+// retried there before giving up; each attempt gets a 10s timeout so a black-holed
+// request can't pin the loading overlay forever.
+function _wbSubnatUrls(url){
+  const m=url.match(/^https:\/\/cdn\.jsdelivr\.net\/gh\/([^@\/]+)\/([^@\/]+)@([^\/]+)\/(.+)$/);
+  return m ? [url, "https://raw.githubusercontent.com/"+m[1]+"/"+m[2]+"/"+m[3]+"/"+m[4]] : [url];
+}
+function _wbSubnatFetch(urls){
+  let i=0;
+  const tryNext=()=>{
+    if(i>=urls.length) return Promise.reject(new Error("all boundary sources failed"));
+    const u=urls[i++];
+    const ctl=(typeof AbortController!=="undefined")?new AbortController():null;
+    const t=ctl?setTimeout(()=>{ try{ctl.abort();}catch(e){} },10000):null;
+    return fetch(u, ctl?{signal:ctl.signal}:{})
+      .then(r=>{ if(t)clearTimeout(t); if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+      .catch(err=>{ if(t)clearTimeout(t);
+        console.warn("[worldbook subnat] boundary fetch failed:",u,"-",err&&err.message?err.message:err);
+        return tryNext(); });
+  };
+  return tryNext();
+}
 function drillIn(iso3){
   if(subOn) return;
   const cfg=META.subnat[iso3];
+  const _prevErr=document.querySelector("#pBody .drill-error"); if(_prevErr) _prevErr.remove();
   document.getElementById("loading").textContent="Loading regional map…";
   document.getElementById("loading").style.display="flex";
-  const src = cfg.geom ? Promise.resolve(cfg.geom) : fetch(cfg.url).then(r=>r.json());
+  const src = cfg.geom ? Promise.resolve(cfg.geom) : _wbSubnatFetch(_wbSubnatUrls(cfg.url));
   src.then(gj=>{
     if(cfg.exclude||cfg.excludeBBox){
       const _cc=(f)=>{let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;(function w(o){if(typeof o[0]==="number"){if(o[0]<x0)x0=o[0];if(o[0]>x1)x1=o[0];if(o[1]<y0)y0=o[1];if(o[1]>y1)y1=o[1];}else o.forEach(w);})(f.geometry.coordinates);return[(x0+x1)/2,(y0+y1)/2];};
@@ -3433,7 +3460,16 @@ function drillIn(iso3){
       `<button class="drillbtn back" onclick="drillOut()">← Back to the world</button>${toggle}
        <div class="note drill-note" style="margin-bottom:14px">Hover regions for their ${party?"religion or 2024 vote":"religious composition"}.${approxNote}</div>`);
     document.getElementById("loading").style.display="none";
-  }).catch(e=>{ document.getElementById("loading").textContent="Couldn't load regional boundaries."; setTimeout(()=>document.getElementById("loading").style.display="none",1500); });
+  }).catch(e=>{
+    console.warn("[worldbook subnat] regional drill-down failed for",iso3,"(",cfg&&cfg.url?cfg.url:"inline geom",")",e&&e.message?e.message:e);
+    document.getElementById("loading").style.display="none";
+    const body=document.getElementById("pBody");
+    if(body && !body.querySelector(".drill-error")){
+      const btn=body.querySelector(".drillbtn");
+      (btn||body).insertAdjacentHTML(btn?"afterend":"afterbegin",
+        '<div class="note drill-error" style="margin-top:6px">Couldn’t load the regional map — a content blocker or network hiccup may be stopping the boundary data from downloading. Everything else still works; you can try again.</div>');
+    }
+  });
 }
 function subMove(e){ const p=e.features[0].properties; map.getCanvas().style.cursor="pointer";
   map.setFilter("sub-hover",["==","_rname",p._rname||""]);
