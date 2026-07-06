@@ -8,13 +8,28 @@ An 8-dimension multi-agent audit of `index.html` for public-beta reliability com
 
 ## Already done & LIVE on worldbook.earth
 
-- **Safari/Ecosia regional drill-down fix** — committed `d913a91`, deployed, verified live. Root cause: content blockers block `cdn.jsdelivr.net`, so subnational boundary fetches silently failed. Fix added a `raw.githubusercontent.com` fallback + 10s `AbortController` timeout + an inline error message (`_wbSubnatUrls` / `_wbSubnatFetch` near the top of `drillIn`). This is the pattern to imitate for the CDN-resilience fixes below.
+- **Safari/Ecosia regional drill-down fix** — deployed, verified live (lab `d913a91` / prod `0ac1001`). Root cause: content blockers block `cdn.jsdelivr.net`, so subnational boundary fetches silently failed. Fix added a `raw.githubusercontent.com` fallback + 10s `AbortController` timeout + an inline error message (`_wbSubnatUrls` / `_wbSubnatFetch` near the top of `drillIn`). This is the pattern to imitate for the CDN-resilience fixes below.
+
+## ⚠️ READ FIRST — repo topology & a divergence landmine (verified 2026-07-05)
+
+There are **two GitHub repos with the same app but divergent histories**:
+
+| | repo | laptop path | role |
+|---|---|---|---|
+| **lab** | `never-nude/worldbook2-lab` | (dev-session checkout) | dev repo, ~only `index.html` |
+| **prod** | `never-nude/worldbook2` | `~/Documents/Claude/Projects/worldbook2` | GitHub Pages deploy → worldbook.earth; also has methodology.html, docs/, favicon, .py scripts |
+
+**Prod is currently AHEAD of lab.** Prod's `index.html` has commits never back-ported to lab: **GA4 analytics (`gtag.js`, `G-R62Z7Y55WH`), og:image social-share tags, a replaced methodology page, and a favicon.** Because of the GA4 block in `<head>`, **every line number in this doc (lab-based) is ~+18 in prod** (e.g. the map constructor is lab:513 / prod:531). → **Use the quoted `code strings` in each fix as the real anchor; they are byte-identical in both repos. Ignore the exact line numbers.**
+
+**DEPLOY SAFETY — do NOT `cp lab/index.html → prod/index.html`.** That would clobber prod's GA4 + og:image + methodology and regress analytics. Safe path for the hardening work:
+- **Make the edits directly in the prod repo** (`worldbook2`) — it's the current canonical code and where the laptop already is. Anchor by grep string. Commit to a branch, merge to `main` to deploy (Pages Action ~20s).
+- **Then re-apply the same edits to `worldbook2-lab`** so the repos don't drift further. (Cleanup for later: back-port prod's GA4/og:image/methodology/favicon into lab so lab is a true superset again.)
 
 ## Ground rules (from the repo's memory + CLAUDE.md — do not violate)
 
 - **Border canon is LOCKED.** Do not touch the `world-lines` source or `countries-edge-soft/tight` layers, and don't restyle the Countries view. None of the fixes below go near it.
 - **Bump `WB_BUILD`** (index.html:535) on any shipping change.
-- **Two-repo deploy, never wholesale-copy.** Lab = `never-nude/worldbook2-lab` (essentially just index.html). Prod = `never-nude/worldbook2` (also has methodology.html, docs/, .py build scripts, CNAME — a deploy updates ONLY prod's `index.html`). Procedure: commit+push lab `main`; then `git clone` prod, `cp lab/index.html prod/index.html`, commit, push. The `pages.yml` GitHub Action publishes in ~20s. Verify: `curl -s https://worldbook.earth/index.html?cb=$(date +%s) | grep WB_BUILD`.
+- **Two-repo deploy — see the divergence warning above.** Because prod is currently ahead of lab (GA4/og:image/methodology), the old "cp lab/index.html → prod" shortcut is unsafe right now. Make hardening edits directly in prod, deploy by merging to prod `main` (Pages Action ~20s), then re-apply to lab. Verify live: `curl -s https://worldbook.earth/index.html?cb=$(date +%s) | grep WB_BUILD`.
 - Multiple Claude sessions push to both repos in parallel — **`git fetch` and diff before pushing.**
 
 ## How to test (this app has traps — see memory `worldbook-lab-testing-gotchas`)
@@ -95,7 +110,7 @@ An 8-dimension multi-agent audit of `index.html` for public-beta reliability com
 2. Apply **P0-1** first; test both failure modes (WebGL off, maplibregl blocked) + a clean load. This alone removes the worst trust-breaker.
 3. Batch the touch/robustness one-liners **P1-3, P1-4, P1-5** (all in the drill/flow area) + the global handlers + `<noscript>`. Test drill-down and a flow layer with DevTools touch emulation.
 4. Add **P0-2** and **P1-6** guards.
-5. Bump `WB_BUILD` (e.g. `2026-07-05.2 beta-hardening`), commit lab, deploy to prod per the procedure above, verify live.
+5. Bump `WB_BUILD` (e.g. `2026-07-05.2 beta-hardening`), commit + merge to prod `main` to deploy, verify live, then re-apply to lab to reconverge.
 6. Leave the deeper P1s (layer-buttons-live-while-drilled, AUS dup, a11y) for a follow-up unless time allows.
 
 ## Confidence
